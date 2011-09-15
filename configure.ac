@@ -30,6 +30,7 @@ AC_SUBST([COMMON_CFLAGS])
 AC_SUBST([COMMON_CXXFLAGS])
 
 AC_CONFIG_FILES([
+webrtc-audio-processing.pc
 Makefile
 src/Makefile
 src/common_audio/Makefile
