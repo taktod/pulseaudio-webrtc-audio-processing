@@ -16,7 +16,9 @@
 #include "critical_section_wrapper.h"
 #include "echo_cancellation_impl.h"
 #include "echo_control_mobile_impl.h"
+#ifndef NDEBUG
 #include "file_wrapper.h"
+#endif
 #include "high_pass_filter_impl.h"
 #include "gain_control_impl.h"
 #include "level_estimator_impl.h"
@@ -25,11 +27,13 @@
 #include "processing_component.h"
 #include "splitting_filter.h"
 #include "voice_detection_impl.h"
+#ifndef NDEBUG
 #ifdef WEBRTC_ANDROID
 #include "external/webrtc/src/modules/audio_processing/main/source/debug.pb.h"
 #else
 #include "webrtc/audio_processing/debug.pb.h"
 #endif
+#endif /* NDEBUG */
 
 namespace webrtc {
 AudioProcessing* AudioProcessing::Create(int id) {
@@ -60,8 +64,10 @@ AudioProcessingImpl::AudioProcessingImpl(int id)
       level_estimator_(NULL),
       noise_suppression_(NULL),
       voice_detection_(NULL),
+#ifndef NDEBUG
       debug_file_(FileWrapper::Create()),
       event_msg_(new audioproc::Event()),
+#endif
       crit_(CriticalSectionWrapper::CreateCriticalSection()),
       render_audio_(NULL),
       capture_audio_(NULL),
@@ -104,6 +110,7 @@ AudioProcessingImpl::~AudioProcessingImpl() {
     component_list_.pop_front();
   }
 
+#ifndef NDEBUG
   if (debug_file_->Open()) {
     debug_file_->CloseFile();
   }
@@ -112,6 +119,7 @@ AudioProcessingImpl::~AudioProcessingImpl() {
 
   delete event_msg_;
   event_msg_ = NULL;
+#endif
 
   delete crit_;
   crit_ = NULL;
@@ -167,12 +175,14 @@ int AudioProcessingImpl::InitializeLocked() {
     }
   }
 
+#ifndef NDEBUG
   if (debug_file_->Open()) {
     int err = WriteInitMessage();
     if (err != kNoError) {
       return err;
     }
   }
+#endif
 
   return kNoError;
 }
@@ -268,6 +278,7 @@ int AudioProcessingImpl::ProcessStream(AudioFrame* frame) {
     return kBadDataLengthError;
   }
 
+#ifndef NDEBUG
   if (debug_file_->Open()) {
     event_msg_->set_type(audioproc::Event::STREAM);
     audioproc::Stream* msg = event_msg_->mutable_stream();
@@ -279,6 +290,7 @@ int AudioProcessingImpl::ProcessStream(AudioFrame* frame) {
     msg->set_drift(echo_cancellation_->stream_drift_samples());
     msg->set_level(gain_control_->stream_analog_level());
   }
+#endif
 
   capture_audio_->DeinterleaveFrom(frame);
 
@@ -358,6 +370,7 @@ int AudioProcessingImpl::ProcessStream(AudioFrame* frame) {
 
   capture_audio_->InterleaveTo(frame);
 
+#ifndef NDEBUG
   if (debug_file_->Open()) {
     audioproc::Stream* msg = event_msg_->mutable_stream();
     const size_t data_size = sizeof(WebRtc_Word16) *
@@ -369,6 +382,7 @@ int AudioProcessingImpl::ProcessStream(AudioFrame* frame) {
       return err;
     }
   }
+#endif
 
   return kNoError;
 }
@@ -393,6 +407,7 @@ int AudioProcessingImpl::AnalyzeReverseStream(AudioFrame* frame) {
     return kBadDataLengthError;
   }
 
+#ifndef NDEBUG
   if (debug_file_->Open()) {
     event_msg_->set_type(audioproc::Event::REVERSE_STREAM);
     audioproc::ReverseStream* msg = event_msg_->mutable_reverse_stream();
@@ -405,6 +420,7 @@ int AudioProcessingImpl::AnalyzeReverseStream(AudioFrame* frame) {
       return err;
     }
   }
+#endif
 
   render_audio_->DeinterleaveFrom(frame);
 
@@ -471,6 +487,7 @@ bool AudioProcessingImpl::was_stream_delay_set() const {
 
 int AudioProcessingImpl::StartDebugRecording(
     const char filename[AudioProcessing::kMaxFilenameSize]) {
+#ifndef NDEBUG
   CriticalSectionScoped crit_scoped(*crit_);
   assert(kMaxFilenameSize == FileWrapper::kMaxFileNameSize);
 
@@ -494,11 +511,13 @@ int AudioProcessingImpl::StartDebugRecording(
   if (err != kNoError) {
     return err;
   }
+#endif
 
   return kNoError;
 }
 
 int AudioProcessingImpl::StopDebugRecording() {
+#ifndef NDEBUG
   CriticalSectionScoped crit_scoped(*crit_);
   // We just return if recording hasn't started.
   if (debug_file_->Open()) {
@@ -506,6 +525,7 @@ int AudioProcessingImpl::StopDebugRecording() {
       return kFileError;
     }
   }
+#endif
 
   return kNoError;
 }
@@ -605,6 +625,7 @@ WebRtc_Word32 AudioProcessingImpl::ChangeUniqueId(const WebRtc_Word32 id) {
   return kNoError;
 }
 
+#ifndef NDEBUG
 int AudioProcessingImpl::WriteMessageToDebugFile() {
   int32_t size = event_msg_->ByteSize();
   if (size <= 0) {
@@ -648,4 +669,5 @@ int AudioProcessingImpl::WriteInitMessage() {
 
   return kNoError;
 }
+#endif
 }  // namespace webrtc
