@@ -322,6 +322,16 @@ class EchoCancellation {
   // TODO(ajm): discuss the metrics update period.
   virtual int GetMetrics(Metrics* metrics) = 0;
 
+  // Enables computation and logging of delay values. Statistics are obtained
+  // through |GetDelayMetrics()|.
+  virtual int enable_delay_logging(bool enable) = 0;
+  virtual bool is_delay_logging_enabled() const = 0;
+
+  // The delay metrics consists of the delay |median| and the delay standard
+  // deviation |std|. The values are averaged over the time period since the
+  // last call to |GetDelayMetrics()|.
+  virtual int GetDelayMetrics(int* median, int* std) = 0;
+
  protected:
   virtual ~EchoCancellation() {};
 };
@@ -486,6 +496,7 @@ class HighPassFilter {
 };
 
 // An estimation component used to retrieve level metrics.
+// NOTE: currently unavailable. All methods return errors.
 class LevelEstimator {
  public:
   virtual int Enable(bool enable) = 0;
@@ -539,6 +550,10 @@ class NoiseSuppression {
 // The voice activity detection (VAD) component analyzes the stream to
 // determine if voice is present. A facility is also provided to pass in an
 // external VAD decision.
+//
+// In addition to |stream_has_voice()| the VAD decision is provided through the
+// |AudioFrame| passed to |ProcessStream()|. The |_vadActivity| member will be
+// modified to reflect the current decision.
 class VoiceDetection {
  public:
   virtual int Enable(bool enable) = 0;

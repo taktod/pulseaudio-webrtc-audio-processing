@@ -12,12 +12,14 @@
  * The core AEC algorithm, which is presented with time-aligned signals.
  */
 
+#include "aec_core.h"
+
 #include <math.h>
 #include <stdlib.h>
 #include <string.h>
 
-#include "aec_core.h"
 #include "aec_rdft.h"
+#include "delay_estimator_float.h"
 #include "ring_buffer.h"
 #include "system_wrappers/interface/cpu_features_wrapper.h"
 
@@ -34,26 +36,9 @@ static const float cnScaleHband = (float)0.4; // scale for comfort noise in H ba
 // Initial bin for averaging nlp gain in low band
 static const int freqAvgIc = PART_LEN / 2;
 
-/* Matlab code to produce table:
-win = sqrt(hanning(63)); win = [0 ; win(1:32)];
-fprintf(1, '\t%.14f, %.14f, %.14f,\n', win);
-*/
-/*
-static const float sqrtHanning[33] = {
-    0.00000000000000, 0.04906767432742, 0.09801714032956,
-    0.14673047445536, 0.19509032201613, 0.24298017990326,
-    0.29028467725446, 0.33688985339222, 0.38268343236509,
-    0.42755509343028, 0.47139673682600, 0.51410274419322,
-    0.55557023301960, 0.59569930449243, 0.63439328416365,
-    0.67155895484702, 0.70710678118655, 0.74095112535496,
-    0.77301045336274, 0.80320753148064, 0.83146961230255,
-    0.85772861000027, 0.88192126434835, 0.90398929312344,
-    0.92387953251129, 0.94154406518302, 0.95694033573221,
-    0.97003125319454, 0.98078528040323, 0.98917650996478,
-    0.99518472667220, 0.99879545620517, 1.00000000000000
-};
-*/
-
+// Matlab code to produce table:
+// win = sqrt(hanning(63)); win = [0 ; win(1:32)];
+// fprintf(1, '\t%.14f, %.14f, %.14f,\n', win);
 static const float sqrtHanning[65] = {
     0.00000000000000f, 0.02454122852291f, 0.04906767432742f,
     0.07356456359967f, 0.09801714032956f, 0.12241067519922f,
@@ -79,10 +64,9 @@ static const float sqrtHanning[65] = {
     0.99969881869620f, 1.00000000000000f
 };
 
-/* Matlab code to produce table:
-weightCurve = [0 ; 0.3 * sqrt(linspace(0,1,64))' + 0.1];
-fprintf(1, '\t%.4f, %.4f, %.4f, %.4f, %.4f, %.4f,\n', weightCurve);
-*/
+// Matlab code to produce table:
+// weightCurve = [0 ; 0.3 * sqrt(linspace(0,1,64))' + 0.1];
+// fprintf(1, '\t%.4f, %.4f, %.4f, %.4f, %.4f, %.4f,\n', weightCurve);
 const float WebRtcAec_weightCurve[65] = {
     0.0000f, 0.1000f, 0.1378f, 0.1535f, 0.1655f, 0.1756f,
     0.1845f, 0.1926f, 0.2000f, 0.2069f, 0.2134f, 0.2195f,
@@ -97,10 +81,9 @@ const float WebRtcAec_weightCurve[65] = {
     0.3903f, 0.3928f, 0.3952f, 0.3976f, 0.4000f
 };
 
-/* Matlab code to produce table:
-overDriveCurve = [sqrt(linspace(0,1,65))' + 1];
-fprintf(1, '\t%.4f, %.4f, %.4f, %.4f, %.4f, %.4f,\n', overDriveCurve);
-*/
+// Matlab code to produce table:
+// overDriveCurve = [sqrt(linspace(0,1,65))' + 1];
+// fprintf(1, '\t%.4f, %.4f, %.4f, %.4f, %.4f, %.4f,\n', overDriveCurve);
 const float WebRtcAec_overDriveCurve[65] = {
     1.0000f, 1.1250f, 1.1768f, 1.2165f, 1.2500f, 1.2795f,
     1.3062f, 1.3307f, 1.3536f, 1.3750f, 1.3953f, 1.4146f,
@@ -193,6 +176,15 @@ int WebRtcAec_CreateAec(aec_t **aecInst)
         return -1;
     }
 
+    if (WebRtc_CreateDelayEstimatorFloat(&aec->delay_estimator,
+                                         PART_LEN1,
+                                         kMaxDelay,
+                                         0) == -1) {
+      WebRtcAec_FreeAec(aec);
+      aec = NULL;
+      return -1;
+    }
+
     return 0;
 }
 
@@ -208,6 +200,8 @@ int WebRtcAec_FreeAec(aec_t *aec)
 
     WebRtcApm_FreeBuffer(aec->nearFrBufH);
     WebRtcApm_FreeBuffer(aec->outFrBufH);
+
+    WebRtc_FreeDelayEstimatorFloat(aec->delay_estimator);
 
     free(aec);
     return 0;
@@ -255,6 +249,32 @@ static void ScaleErrorSignal(aec_t *aec, float ef[2][PART_LEN1])
   }
 }
 
+// Time-unconstrined filter adaptation.
+// TODO(andrew): consider for a low-complexity mode.
+//static void FilterAdaptationUnconstrained(aec_t *aec, float *fft,
+//                                          float ef[2][PART_LEN1]) {
+//  int i, j;
+//  for (i = 0; i < NR_PART; i++) {
+//    int xPos = (i + aec->xfBufBlockPos)*(PART_LEN1);
+//    int pos;
+//    // Check for wrap
+//    if (i + aec->xfBufBlockPos >= NR_PART) {
+//      xPos -= NR_PART * PART_LEN1;
+//    }
+//
+//    pos = i * PART_LEN1;
+//
+//    for (j = 0; j < PART_LEN1; j++) {
+//      aec->wfBuf[pos + j][0] += MulRe(aec->xfBuf[xPos + j][0],
+//                                      -aec->xfBuf[xPos + j][1],
+//                                      ef[j][0], ef[j][1]);
+//      aec->wfBuf[pos + j][1] += MulIm(aec->xfBuf[xPos + j][0],
+//                                      -aec->xfBuf[xPos + j][1],
+//                                      ef[j][0], ef[j][1]);
+//    }
+//  }
+//}
+
 static void FilterAdaptation(aec_t *aec, float *fft, float ef[2][PART_LEN1]) {
   int i, j;
   for (i = 0; i < NR_PART; i++) {
@@ -267,16 +287,6 @@ static void FilterAdaptation(aec_t *aec, float *fft, float ef[2][PART_LEN1]) {
 
     pos = i * PART_LEN1;
 
-#ifdef UNCONSTR
-    for (j = 0; j < PART_LEN1; j++) {
-      aec->wfBuf[pos + j][0] += MulRe(aec->xfBuf[xPos + j][0],
-                                      -aec->xfBuf[xPos + j][1],
-                                      ef[j][0], ef[j][1]);
-      aec->wfBuf[pos + j][1] += MulIm(aec->xfBuf[xPos + j][0],
-                                      -aec->xfBuf[xPos + j][1],
-                                      ef[j][0], ef[j][1]);
-    }
-#else
     for (j = 0; j < PART_LEN; j++) {
 
       fft[2 * j] = MulRe(aec->xfBuf[0][xPos + j],
@@ -309,7 +319,6 @@ static void FilterAdaptation(aec_t *aec, float *fft, float ef[2][PART_LEN1]) {
       aec->wfBuf[0][pos + j] += fft[2 * j];
       aec->wfBuf[1][pos + j] += fft[2 * j + 1];
     }
-#endif // UNCONSTR
   }
 }
 
@@ -374,6 +383,12 @@ int WebRtcAec_InitAec(aec_t *aec, int sampFreq)
     if (WebRtcApm_InitBuffer(aec->outFrBufH) == -1) {
         return -1;
     }
+
+    if (WebRtc_InitDelayEstimatorFloat(aec->delay_estimator) != 0) {
+      return -1;
+    }
+    aec->delay_logging_enabled = 0;
+    memset(aec->delay_histogram, 0, sizeof(aec->delay_histogram));
 
     // Default target suppression level
     aec->targetSupp = -11.5;
@@ -565,6 +580,10 @@ static void ProcessBlock(aec_t *aec, const short *farend,
     float fft[PART_LEN2];
     float xf[2][PART_LEN1], yf[2][PART_LEN1], ef[2][PART_LEN1];
     complex_t df[PART_LEN1];
+    float far_spectrum = 0.0f;
+    float near_spectrum = 0.0f;
+    float abs_far_spectrum[PART_LEN1];
+    float abs_near_spectrum[PART_LEN1];
 
     const float gPow[2] = {0.9f, 0.1f};
 
@@ -629,10 +648,15 @@ static void ProcessBlock(aec_t *aec, const short *farend,
 
     // Power smoothing
     for (i = 0; i < PART_LEN1; i++) {
-        aec->xPow[i] = gPow[0] * aec->xPow[i] + gPow[1] * NR_PART *
-            (xf[0][i] * xf[0][i] + xf[1][i] * xf[1][i]);
-        aec->dPow[i] = gPow[0] * aec->dPow[i] + gPow[1] *
-            (df[i][0] * df[i][0] + df[i][1] * df[i][1]);
+      far_spectrum = xf[0][i] * xf[0][i] + xf[1][i] * xf[1][i];
+      aec->xPow[i] = gPow[0] * aec->xPow[i] + gPow[1] * NR_PART * far_spectrum;
+      // Calculate absolute spectra
+      abs_far_spectrum[i] = sqrtf(far_spectrum);
+
+      near_spectrum = df[i][0] * df[i][0] + df[i][1] * df[i][1];
+      aec->dPow[i] = gPow[0] * aec->dPow[i] + gPow[1] * near_spectrum;
+      // Calculate absolute spectra
+      abs_near_spectrum[i] = sqrtf(near_spectrum);
     }
 
     // Estimate noise power. Wait until dPow is more stable.
@@ -667,6 +691,20 @@ static void ProcessBlock(aec_t *aec, const short *farend,
         aec->noisePow = aec->dMinPow;
     }
 
+    // Block wise delay estimation used for logging
+    if (aec->delay_logging_enabled) {
+      int delay_estimate = 0;
+      // Estimate the delay
+      delay_estimate = WebRtc_DelayEstimatorProcessFloat(aec->delay_estimator,
+                                                         abs_far_spectrum,
+                                                         abs_near_spectrum,
+                                                         PART_LEN1,
+                                                         aec->echoState);
+      if (delay_estimate >= 0) {
+        // Update delay estimate buffer
+        aec->delay_histogram[delay_estimate]++;
+      }
+    }
 
     // Update the xfBuf block position.
     aec->xfBufBlockPos--;
@@ -720,9 +758,7 @@ static void ProcessBlock(aec_t *aec, const short *farend,
 
     // Scale error signal inversely with far power.
     WebRtcAec_ScaleErrorSignal(aec, ef);
-    // Filter adaptation
     WebRtcAec_FilterAdaptation(aec, fft, ef);
-
     NonLinearProcessing(aec, output, outputH);
 
 #ifdef AEC_DEBUG

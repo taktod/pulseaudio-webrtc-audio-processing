@@ -138,16 +138,6 @@ static void FilterAdaptationSSE2(aec_t *aec, float *fft, float ef[2][PART_LEN1])
       xPos -= NR_PART * PART_LEN1;
     }
 
-#ifdef UNCONSTR
-    for (j = 0; j < PART_LEN1; j++) {
-      aec->wfBuf[pos + j][0] += MulRe(aec->xfBuf[xPos + j][0],
-                                      -aec->xfBuf[xPos + j][1],
-                                      ef[j][0], ef[j][1]);
-      aec->wfBuf[pos + j][1] += MulIm(aec->xfBuf[xPos + j][0],
-                                      -aec->xfBuf[xPos + j][1],
-                                      ef[j][0], ef[j][1]);
-    }
-#else
     // Process the whole array...
     for (j = 0; j < PART_LEN; j+= 4) {
       // Load xfBuf and ef.
@@ -208,7 +198,6 @@ static void FilterAdaptationSSE2(aec_t *aec, float *fft, float ef[2][PART_LEN1])
       }
       aec->wfBuf[1][pos] = wt1;
     }
-#endif // UNCONSTR
   }
 }
 
@@ -246,10 +235,9 @@ static __m128 mm_pow_ps(__m128 a, __m128 b)
         {0x43BF8000, 0x43BF8000, 0x43BF8000, 0x43BF8000};
     static const int shift_exponent_into_top_mantissa = 8;
     const __m128 two_n = _mm_and_ps(a, *((__m128 *)float_exponent_mask));
-    const __m128 n_1 = (__m128)_mm_srli_epi32((__m128i)two_n,
-        shift_exponent_into_top_mantissa);
-    const __m128 n_0 = _mm_or_ps(
-        (__m128)n_1, *((__m128 *)eight_biased_exponent));
+    const __m128 n_1 = _mm_castsi128_ps(_mm_srli_epi32(_mm_castps_si128(two_n),
+        shift_exponent_into_top_mantissa));
+    const __m128 n_0 = _mm_or_ps(n_1, *((__m128 *)eight_biased_exponent));
     const __m128 n   = _mm_sub_ps(n_0,  *((__m128 *)implicit_leading_one));
 
     // Compute y.
@@ -328,8 +316,8 @@ static __m128 mm_pow_ps(__m128 a, __m128 b)
     static const int float_exponent_shift = 23;
     const __m128i two_n_exponent = _mm_add_epi32(
         x_minus_half_floor, *((__m128i *)float_exponent_bias));
-    const __m128  two_n = (__m128)_mm_slli_epi32(
-        two_n_exponent, float_exponent_shift);
+    const __m128  two_n = _mm_castsi128_ps(_mm_slli_epi32(
+        two_n_exponent, float_exponent_shift));
     // Compute y.
     const __m128 y = _mm_sub_ps(x_max, _mm_cvtepi32_ps(x_minus_half_floor));
     // Approximate 2^y ~= C2 * y^2 + C1 * y + C0.

@@ -28,6 +28,7 @@
 
 using webrtc::AudioFrame;
 using webrtc::AudioProcessing;
+using webrtc::EchoCancellation;
 using webrtc::GainControl;
 using webrtc::NoiseSuppression;
 using webrtc::TickInterval;
@@ -61,6 +62,12 @@ bool ReadMessageFromFile(FILE* file,
   return msg->ParseFromArray(array, usize);
 }
 
+void PrintStat(const AudioProcessing::Statistic& stat) {
+  printf("%d, %d, %d\n", stat.average,
+                         stat.maximum,
+                         stat.minimum);
+}
+
 void usage() {
   printf(
   "Usage: process_test [options] [-pb PROTOBUF_FILE]\n"
@@ -86,6 +93,8 @@ void usage() {
   printf("\n  -aec     Echo cancellation\n");
   printf("  --drift_compensation\n");
   printf("  --no_drift_compensation\n");
+  printf("  --no_echo_metrics\n");
+  printf("  --no_delay_logging\n");
   printf("\n  -aecm    Echo control mobile\n");
   printf("  --aecm_echo_path_in_file FILE\n");
   printf("  --aecm_echo_path_out_file FILE\n");
@@ -107,6 +116,7 @@ void usage() {
   printf("  --vad_out_file FILE\n");
   printf("\n");
   printf("Modifiers:\n");
+  printf("  --noasm         Disable SSE optimization.\n");
   printf("  --perf          Measure performance.\n");
   printf("  --quiet         Suppress text output.\n");
   printf("  --no_progress   Suppress progress.\n");
@@ -156,7 +166,7 @@ void void_main(int argc, char* argv[]) {
   //bool interleaved = true;
 
   for (int i = 1; i < argc; i++) {
-     if (strcmp(argv[i], "-pb") == 0) {
+    if (strcmp(argv[i], "-pb") == 0) {
       i++;
       ASSERT_LT(i, argc) << "Specify protobuf filename after -pb";
       pb_filename = argv[i];
@@ -208,9 +218,10 @@ void void_main(int argc, char* argv[]) {
 
     } else if (strcmp(argv[i], "-aec") == 0) {
       ASSERT_EQ(apm->kNoError, apm->echo_cancellation()->Enable(true));
-
-    } else if (strcmp(argv[i], "-noasm") == 0) {
-      WebRtc_GetCPUInfo = WebRtc_GetCPUInfoNoASM;
+      ASSERT_EQ(apm->kNoError,
+                apm->echo_cancellation()->enable_metrics(true));
+      ASSERT_EQ(apm->kNoError,
+                apm->echo_cancellation()->enable_delay_logging(true));
 
     } else if (strcmp(argv[i], "--drift_compensation") == 0) {
       ASSERT_EQ(apm->kNoError, apm->echo_cancellation()->Enable(true));
@@ -222,6 +233,16 @@ void void_main(int argc, char* argv[]) {
       ASSERT_EQ(apm->kNoError, apm->echo_cancellation()->Enable(true));
       ASSERT_EQ(apm->kNoError,
                 apm->echo_cancellation()->enable_drift_compensation(false));
+
+    } else if (strcmp(argv[i], "--no_echo_metrics") == 0) {
+      ASSERT_EQ(apm->kNoError, apm->echo_cancellation()->Enable(true));
+      ASSERT_EQ(apm->kNoError,
+                apm->echo_cancellation()->enable_metrics(false));
+
+    } else if (strcmp(argv[i], "--no_delay_logging") == 0) {
+      ASSERT_EQ(apm->kNoError, apm->echo_cancellation()->Enable(true));
+      ASSERT_EQ(apm->kNoError,
+                apm->echo_cancellation()->enable_delay_logging(false));
 
     } else if (strcmp(argv[i], "-aecm") == 0) {
       ASSERT_EQ(apm->kNoError, apm->echo_control_mobile()->Enable(true));
@@ -315,6 +336,11 @@ void void_main(int argc, char* argv[]) {
       i++;
       ASSERT_LT(i, argc) << "Specify filename after --vad_out_file";
       vad_out_filename = argv[i];
+
+    } else if (strcmp(argv[i], "--noasm") == 0) {
+      WebRtc_GetCPUInfo = WebRtc_GetCPUInfoNoASM;
+      // We need to reinitialize here if components have already been enabled.
+      ASSERT_EQ(apm->kNoError, apm->Initialize());
 
     } else if (strcmp(argv[i], "--perf") == 0) {
       perf_testing = true;
@@ -460,13 +486,6 @@ void void_main(int argc, char* argv[]) {
                                                  << aecm_echo_path_out_filename;
   }
 
-  enum Events {
-    kInitializeEvent,
-    kRenderEvent,
-    kCaptureEvent,
-    kResetEventDeprecated
-  };
-  int16_t event = 0;
   size_t read_count = 0;
   int reverse_count = 0;
   int primary_count = 0;
@@ -642,9 +661,15 @@ void void_main(int argc, char* argv[]) {
     }
 
     ASSERT_TRUE(feof(pb_file));
-    printf("100%% complete\r");
 
   } else {
+    enum Events {
+      kInitializeEvent,
+      kRenderEvent,
+      kCaptureEvent,
+      kResetEventDeprecated
+    };
+    int16_t event = 0;
     while (simulating || feof(event_file) == 0) {
       std::ostringstream trace_stream;
       trace_stream << "Processed frames: " << reverse_count << " (reverse), "
@@ -708,6 +733,10 @@ void void_main(int argc, char* argv[]) {
 
         if (simulating) {
           if (read_count != far_frame._payloadDataLengthInSamples) {
+            // Read an equal amount from the near file to avoid errors due to
+            // not reaching end-of-file.
+            EXPECT_EQ(0, fseek(near_file, read_count * sizeof(WebRtc_Word16),
+                      SEEK_CUR));
             break; // This is expected.
           }
         } else {
@@ -828,6 +857,7 @@ void void_main(int argc, char* argv[]) {
       }
     }
   }
+  printf("100%% complete\r");
 
   if (aecm_echo_path_out_file != NULL) {
     const size_t path_size =
@@ -845,6 +875,27 @@ void void_main(int argc, char* argv[]) {
   if (verbose) {
     printf("\nProcessed frames: %d (primary), %d (reverse)\n",
         primary_count, reverse_count);
+
+    if (apm->echo_cancellation()->are_metrics_enabled()) {
+      EchoCancellation::Metrics metrics;
+      apm->echo_cancellation()->GetMetrics(&metrics);
+      printf("\n--Echo metrics--\n");
+      printf("(avg, max, min)\n");
+      printf("ERL:  ");
+      PrintStat(metrics.echo_return_loss);
+      printf("ERLE: ");
+      PrintStat(metrics.echo_return_loss_enhancement);
+      printf("ANLP: ");
+      PrintStat(metrics.a_nlp);
+    }
+    if (apm->echo_cancellation()->is_delay_logging_enabled()) {
+      int median = 0;
+      int std = 0;
+      apm->echo_cancellation()->GetDelayMetrics(&median, &std);
+      printf("\n--Delay metrics--\n");
+      printf("Median:             %3d\n", median);
+      printf("Standard deviation: %3d\n", std);
+    }
   }
 
   if (!pb_file) {

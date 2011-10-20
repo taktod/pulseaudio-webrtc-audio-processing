@@ -10,12 +10,13 @@
 
 #include <stdio.h>
 
-#include <gtest/gtest.h>
+#include "gtest/gtest.h"
 
 #include "audio_processing.h"
 #include "event_wrapper.h"
 #include "module_common_types.h"
 #include "signal_processing_library.h"
+#include "testsupport/fileutils.h"
 #include "thread_wrapper.h"
 #include "trace.h"
 #ifdef WEBRTC_ANDROID
@@ -42,12 +43,6 @@ namespace {
 // be set to true with the command-line switch --write_output_data.
 bool write_output_data = false;
 
-#if defined(WEBRTC_APM_UNIT_TEST_FIXED_PROFILE)
-const char kOutputFileName[] = "output_data_fixed.pb";
-#elif defined(WEBRTC_APM_UNIT_TEST_FLOAT_PROFILE)
-const char kOutputFileName[] = "output_data_float.pb";
-#endif
-
 class ApmEnvironment : public ::testing::Environment {
  public:
   virtual void SetUp() {
@@ -65,7 +60,9 @@ class ApmTest : public ::testing::Test {
   ApmTest();
   virtual void SetUp();
   virtual void TearDown();
-
+  // Path to where the resource files to be used for this test are located.
+  const std::string kResourcePath;
+  const std::string kOutputFileName;
   webrtc::AudioProcessing* apm_;
   webrtc::AudioFrame* frame_;
   webrtc::AudioFrame* revframe_;
@@ -74,7 +71,14 @@ class ApmTest : public ::testing::Test {
 };
 
 ApmTest::ApmTest()
-    : apm_(NULL),
+    : kResourcePath(webrtc::test::GetProjectRootPath() +
+                    "test/data/audio_processing/"),
+#if defined(WEBRTC_APM_UNIT_TEST_FIXED_PROFILE)
+      kOutputFileName(kResourcePath + "output_data_fixed.pb"),
+#elif defined(WEBRTC_APM_UNIT_TEST_FLOAT_PROFILE)
+      kOutputFileName(kResourcePath + "output_data_float.pb"),
+#endif
+      apm_(NULL),
       frame_(NULL),
       revframe_(NULL),
       far_file_(NULL),
@@ -98,10 +102,14 @@ void ApmTest::SetUp() {
   revframe_->_audioChannel = 2;
   revframe_->_frequencyInHz = 32000;
 
-  far_file_ = fopen("aec_far.pcm", "rb");
-  ASSERT_TRUE(far_file_ != NULL) << "Could not open input file aec_far.pcm\n";
-  near_file_ = fopen("aec_near.pcm", "rb");
-  ASSERT_TRUE(near_file_ != NULL) << "Could not open input file aec_near.pcm\n";
+  std::string input_filename = kResourcePath + "aec_far.pcm";
+  far_file_ = fopen(input_filename.c_str(), "rb");
+  ASSERT_TRUE(far_file_ != NULL) << "Could not open input file " <<
+      input_filename << "\n";
+  input_filename = kResourcePath + "aec_near.pcm";
+  near_file_ = fopen(input_filename.c_str(), "rb");
+  ASSERT_TRUE(near_file_ != NULL) << "Could not open input file " <<
+        input_filename << "\n";
 }
 
 void ApmTest::TearDown() {
@@ -177,11 +185,9 @@ void WriteStatsMessage(const AudioProcessing::Statistic& output,
   message->set_minimum(output.minimum);
 }
 
-void WriteMessageLiteToFile(const char* filename,
+void WriteMessageLiteToFile(const std::string filename,
                             const ::google::protobuf::MessageLite& message) {
-  assert(filename != NULL);
-
-  FILE* file = fopen(filename, "wb");
+  FILE* file = fopen(filename.c_str(), "wb");
   ASSERT_TRUE(file != NULL) << "Could not open " << filename;
   int size = message.ByteSize();
   ASSERT_GT(size, 0);
@@ -196,12 +202,11 @@ void WriteMessageLiteToFile(const char* filename,
   fclose(file);
 }
 
-void ReadMessageLiteFromFile(const char* filename,
+void ReadMessageLiteFromFile(const std::string filename,
                              ::google::protobuf::MessageLite* message) {
-  assert(filename != NULL);
   assert(message != NULL);
 
-  FILE* file = fopen(filename, "rb");
+  FILE* file = fopen(filename.c_str(), "rb");
   ASSERT_TRUE(file != NULL) << "Could not open " << filename;
   int size = 0;
   ASSERT_EQ(1u, fread(&size, sizeof(int), 1, file));
@@ -457,6 +462,8 @@ TEST_F(ApmTest, Process) {
             apm_->echo_cancellation()->enable_drift_compensation(true));
   EXPECT_EQ(apm_->kNoError,
             apm_->echo_cancellation()->enable_metrics(true));
+  EXPECT_EQ(apm_->kNoError,
+            apm_->echo_cancellation()->enable_delay_logging(true));
   EXPECT_EQ(apm_->kNoError, apm_->echo_cancellation()->Enable(true));
 
   EXPECT_EQ(apm_->kNoError,
@@ -555,6 +562,7 @@ TEST_F(ApmTest, Process) {
                &temp_data[0],
                sizeof(WebRtc_Word16) * read_count);
       }
+      frame_->_vadActivity = AudioFrame::kVadUnknown;
 
       EXPECT_EQ(apm_->kNoError, apm_->ProcessStream(frame_));
 
@@ -571,6 +579,9 @@ TEST_F(ApmTest, Process) {
       }
       if (apm_->voice_detection()->stream_has_voice()) {
         has_voice_count++;
+        EXPECT_EQ(AudioFrame::kVadActive, frame_->_vadActivity);
+      } else {
+        EXPECT_EQ(AudioFrame::kVadPassive, frame_->_vadActivity);
       }
 
       frame_count++;
@@ -587,6 +598,10 @@ TEST_F(ApmTest, Process) {
     EchoCancellation::Metrics echo_metrics;
     EXPECT_EQ(apm_->kNoError,
               apm_->echo_cancellation()->GetMetrics(&echo_metrics));
+    int median = 0;
+    int std = 0;
+    EXPECT_EQ(apm_->kNoError,
+              apm_->echo_cancellation()->GetDelayMetrics(&median, &std));
 #endif
 
     if (!write_output_data) {
@@ -608,6 +623,11 @@ TEST_F(ApmTest, Process) {
                 reference.echo_return_loss_enhancement());
       TestStats(echo_metrics.a_nlp,
                 reference.a_nlp());
+
+      webrtc::audioproc::Test::DelayMetrics reference_delay =
+          test->delay_metrics();
+      EXPECT_EQ(median, reference_delay.median());
+      EXPECT_EQ(std, reference_delay.std());
 #endif
     } else {
       test->set_has_echo_count(has_echo_count);
@@ -628,6 +648,11 @@ TEST_F(ApmTest, Process) {
                         message->mutable_echo_return_loss_enhancement());
       WriteStatsMessage(echo_metrics.a_nlp,
                         message->mutable_a_nlp());
+
+      webrtc::audioproc::Test::DelayMetrics* message_delay =
+          test->mutable_delay_metrics();
+      message_delay->set_median(median);
+      message_delay->set_std(std);
 #endif
     }
 
@@ -691,6 +716,18 @@ TEST_F(ApmTest, EchoCancellation) {
   EXPECT_EQ(apm_->kNoError,
             apm_->echo_cancellation()->enable_metrics(false));
   EXPECT_FALSE(apm_->echo_cancellation()->are_metrics_enabled());
+
+  int median = 0;
+  int std = 0;
+  EXPECT_EQ(apm_->kNotEnabledError,
+            apm_->echo_cancellation()->GetDelayMetrics(&median, &std));
+
+  EXPECT_EQ(apm_->kNoError,
+            apm_->echo_cancellation()->enable_delay_logging(true));
+  EXPECT_TRUE(apm_->echo_cancellation()->is_delay_logging_enabled());
+  EXPECT_EQ(apm_->kNoError,
+            apm_->echo_cancellation()->enable_delay_logging(false));
+  EXPECT_FALSE(apm_->echo_cancellation()->is_delay_logging_enabled());
 
   EXPECT_EQ(apm_->kNoError, apm_->echo_cancellation()->Enable(true));
   EXPECT_TRUE(apm_->echo_cancellation()->is_enabled());
@@ -966,27 +1003,27 @@ TEST_F(ApmTest, VoiceDetection) {
   EXPECT_EQ(apm_->kNoError, apm_->voice_detection()->Enable(false));
   EXPECT_FALSE(apm_->voice_detection()->is_enabled());
 
+  // Test that AudioFrame activity is maintained when VAD is disabled.
+  EXPECT_EQ(apm_->kNoError, apm_->voice_detection()->Enable(false));
+  AudioFrame::VADActivity activity[] = {
+      AudioFrame::kVadActive,
+      AudioFrame::kVadPassive,
+      AudioFrame::kVadUnknown
+  };
+  for (size_t i = 0; i < sizeof(activity)/sizeof(*activity); i++) {
+    frame_->_vadActivity = activity[i];
+    EXPECT_EQ(apm_->kNoError, apm_->ProcessStream(frame_));
+    EXPECT_EQ(activity[i], frame_->_vadActivity);
+  }
+
+  // Test that AudioFrame activity is set when VAD is enabled.
+  EXPECT_EQ(apm_->kNoError, apm_->voice_detection()->Enable(true));
+  frame_->_vadActivity = AudioFrame::kVadUnknown;
+  EXPECT_EQ(apm_->kNoError, apm_->ProcessStream(frame_));
+  EXPECT_NE(AudioFrame::kVadUnknown, frame_->_vadActivity);
+
   // TODO(bjornv): Add tests for streamed voice; stream_has_voice()
 }
-
-// Below are some ideas for tests from VPM.
-
-/*TEST_F(VideoProcessingModuleTest, GetVersionTest)
-{
-}
-
-TEST_F(VideoProcessingModuleTest, HandleNullBuffer)
-{
-}
-
-TEST_F(VideoProcessingModuleTest, HandleBadSize)
-{
-}
-
-TEST_F(VideoProcessingModuleTest, IdenticalResultsAfterReset)
-{
-}
-*/
 }  // namespace
 
 int main(int argc, char** argv) {

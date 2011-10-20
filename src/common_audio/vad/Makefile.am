@@ -2,11 +2,9 @@ noinst_LTLIBRARIES = libvad.la
 
 libvad_la_SOURCES = main/interface/webrtc_vad.h \
 		    main/source/webrtc_vad.c \
-		    main/source/vad_const.c \
-		    main/source/vad_const.h \
-		    main/source/vad_defines.h \
 		    main/source/vad_core.c \
 		    main/source/vad_core.h \
+		    main/source/vad_defines.h \
 		    main/source/vad_filterbank.c \
 		    main/source/vad_filterbank.h \
 		    main/source/vad_gmm.c \
