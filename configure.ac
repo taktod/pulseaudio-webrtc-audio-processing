@@ -1,5 +1,5 @@
 # Revision changelog (version - date, svn rev. from upstream that was merged)
-#    0.1 - 19 Oct 2011, r766
+#    0.1 - 19 Oct 2011, r767
 AC_INIT([webrtc-audio-processing], [0.1])
 AM_INIT_AUTOMAKE([tar-ustar])
 
@@ -24,8 +24,8 @@ AS_CASE(["x${with_ns_mode}"],
 	[NS_FIXED=0])
 AM_CONDITIONAL(NS_FIXED, [test "x${NS_FIXED}" = "x1"])
 
-COMMON_CFLAGS="-DNDEBUG -I\$(srcdir)/main/interface -I\$(top_srcdir)/src -I\$(top_srcdir)/src/modules/interface"
-COMMON_CXXFLAGS="-DNDEBUG -I\$(srcdir)/main/interface -I\$(top_srcdir)/src -I\$(top_srcdir)/src/modules/interface"
+COMMON_CFLAGS="-DNDEBUG -I\$(srcdir)/interface -I\$(srcdir)/main/interface -I\$(top_srcdir)/src -I\$(top_srcdir)/src/modules/interface"
+COMMON_CXXFLAGS="-DNDEBUG -I\$(srcdir)/interface -I\$(srcdir)/main/interface -I\$(top_srcdir)/src -I\$(top_srcdir)/src/modules/interface"
 AC_SUBST([COMMON_CFLAGS])
 AC_SUBST([COMMON_CXXFLAGS])
 
