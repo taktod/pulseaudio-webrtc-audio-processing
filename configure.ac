@@ -1,7 +1,7 @@
 # Revision changelog (version - date, svn rev. from upstream that was merged)
 #    0.1 - 21 Oct 2011, r789
 AC_INIT([webrtc-audio-processing], [0.1])
-AM_INIT_AUTOMAKE([tar-ustar])
+AM_INIT_AUTOMAKE([dist-xz tar-ustar])
 
 AC_SUBST(LIBWEBRTC_AUDIO_PROCESSING_VERSION_INFO, [0:0:0])
 
