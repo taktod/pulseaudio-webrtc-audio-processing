@@ -25,13 +25,14 @@ libsystem_wrappers_la_SOURCES = interface/aligned_malloc.h \
 				source/critical_section_win.h \
 				source/logging.cc \
 				source/metrics_default.cc \
+				source/rw_lock.cc \
 				source/rw_lock_generic.h \
 				source/rw_lock_posix.h \
 				source/rw_lock_win.h \
 				source/sleep.cc \
 				source/thread.cc \
 				source/thread_posix.h \
-				source/thread_win.h
+				source/thread_win.h \
 				source/trace_impl.cc \
 				source/trace_impl.h \
 				source/trace_posix.h \

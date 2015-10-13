@@ -69,6 +69,7 @@ libcommon_audio_la_SOURCES = resampler/include/push_resampler.h \
 			     audio_converter.h \
 			     audio_ring_buffer.cc \
 			     audio_ring_buffer.h \
+			     audio_util.cc \
 			     blocker.cc \
 			     blocker.h \
 			     channel_buffer.cc \

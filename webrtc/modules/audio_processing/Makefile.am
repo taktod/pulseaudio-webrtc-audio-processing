@@ -50,6 +50,10 @@ libwebrtc_audio_processing_la_SOURCES = include/audio_processing.h \
 					beamformer/nonlinear_beamformer.h \
 					beamformer/covariance_matrix_generator.cc \
 					beamformer/nonlinear_beamformer.cc \
+					intelligibility/intelligibility_enhancer.h \
+					intelligibility/intelligibility_utils.h \
+					intelligibility/intelligibility_enhancer.cc \
+					intelligibility/intelligibility_utils.cc \
 					logging/aec_logging.h \
 					logging/aec_logging_file_handling.h \
 					logging/aec_logging_file_handling.cc \
@@ -125,7 +129,8 @@ libwebrtc_audio_processing_la_SOURCES = include/audio_processing.h \
 					voice_detection_impl.h
 
 if NS_FIXED
-COMMON_CXXFLAGS += -DWEBRTC_NS_FIXED=0
+COMMON_CFLAGS += -DWEBRTC_NS_FIXED=1
+COMMON_CXXFLAGS += -DWEBRTC_NS_FIXED=1
 libwebrtc_audio_processing_la_SOURCES += \
 					ns/include/noise_suppression_x.h \
 					ns/noise_suppression_x.c \
@@ -134,7 +139,8 @@ libwebrtc_audio_processing_la_SOURCES += \
 					ns/nsx_core.h \
 					ns/nsx_core_c.c
 else
-COMMON_CXXFLAGS += -DWEBRTC_NS_FIXED=1
+COMMON_CFLAGS += -DWEBRTC_NS_FLOAT=1
+COMMON_CXXFLAGS += -DWEBRTC_NS_FLOAT=1
 libwebrtc_audio_processing_la_SOURCES += \
 					ns/include/noise_suppression.h \
 					ns/noise_suppression.c \
@@ -147,9 +153,10 @@ endif
 libwebrtc_audio_processing_la_CFLAGS = $(AM_CFLAGS) $(COMMON_CFLAGS)
 libwebrtc_audio_processing_la_CXXFLAGS = $(AM_CXXFLAGS) $(COMMON_CXXFLAGS)
 
-libwebrtc_audio_processing_la_LIBADD = $(top_builddir)/webrtc/base/libbase.la \
+libwebrtc_audio_processing_la_LIBADD = $(top_builddir)/webrtc/libwebrtc.la \
+				       $(top_builddir)/webrtc/base/libbase.la \
 				       $(top_builddir)/webrtc/system_wrappers/libsystem_wrappers.la \
-				       $(top_builddir)/webrtc/common_audio/libcommon_audio.la
+				       $(top_builddir)/webrtc/common_audio/libcommon_audio.la \
 				       $(top_builddir)/webrtc/modules/audio_coding/libaudio_coding.la
 libwebrtc_audio_processing_la_LDFLAGS = $(AM_LDFLAGS) -version-info $(LIBWEBRTC_AUDIO_PROCESSING_VERSION_INFO)
 

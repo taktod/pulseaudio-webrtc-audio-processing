@@ -3,7 +3,6 @@ noinst_LTLIBRARIES = libbase.la
 noinst_HEADERS = arraysize.h \
 		 atomicops.h \
 		 basictypes.h \
-		 checks.h \
 		 constructormagic.h \
 		 safe_conversions.h \
 		 safe_conversions_impl.h \
@@ -13,6 +12,8 @@ noinst_HEADERS = arraysize.h \
 
 libbase_la_SOURCES = criticalsection.cc \
 		     criticalsection.h \
+		     checks.cc \
+		     checks.h \
 		     event.cc \
 		     event.h \
 		     platform_thread.cc \
