@@ -8,29 +8,31 @@
  *  be found in the AUTHORS file in the root of the source tree.
  */
 
-#ifndef WEBRTC_SYSTEM_WRAPPERS_SOURCE_CRITICAL_SECTION_POSIX_H_
-#define WEBRTC_SYSTEM_WRAPPERS_SOURCE_CRITICAL_SECTION_POSIX_H_
+#ifndef WEBRTC_SYSTEM_WRAPPERS_SOURCE_CRITICAL_SECTION_WIN_H_
+#define WEBRTC_SYSTEM_WRAPPERS_SOURCE_CRITICAL_SECTION_WIN_H_
 
+#include <windows.h>
 #include "webrtc/system_wrappers/interface/critical_section_wrapper.h"
-
-#include <pthread.h>
+#include "webrtc/typedefs.h"
 
 namespace webrtc {
 
-class CriticalSectionPosix : public CriticalSectionWrapper {
+class CriticalSectionWindows : public CriticalSectionWrapper {
  public:
-  CriticalSectionPosix();
+  CriticalSectionWindows();
 
-  ~CriticalSectionPosix() override;
+  virtual ~CriticalSectionWindows();
 
-  void Enter() override;
-  void Leave() override;
+  virtual void Enter();
+  virtual void Leave();
 
  private:
-  pthread_mutex_t mutex_;
-  friend class ConditionVariablePosix;
+  CRITICAL_SECTION crit;
+
+  friend class ConditionVariableEventWin;
+  friend class ConditionVariableNativeWin;
 };
 
 }  // namespace webrtc
 
-#endif  // WEBRTC_SYSTEM_WRAPPERS_SOURCE_CRITICAL_SECTION_POSIX_H_
+#endif  // WEBRTC_SYSTEM_WRAPPERS_SOURCE_CRITICAL_SECTION_WIN_H_
