@@ -1,7 +1,7 @@
 # Revision changelog (version - date, svn rev. from upstream that was merged)
 #    0.1 - 21 Oct 2011, r789
 AC_INIT([webrtc-audio-processing], [0.1])
-AM_INIT_AUTOMAKE([dist-xz tar-ustar])
+AM_INIT_AUTOMAKE([dist-xz subdir-objects tar-ustar])
 
 AC_SUBST(LIBWEBRTC_AUDIO_PROCESSING_VERSION_INFO, [0:0:0])
 
@@ -24,26 +24,24 @@ AS_CASE(["x${with_ns_mode}"],
 	[NS_FIXED=0])
 AM_CONDITIONAL(NS_FIXED, [test "x${NS_FIXED}" = "x1"])
 
-COMMON_CFLAGS="-DNDEBUG -I\$(srcdir)/interface -I\$(srcdir)/main/interface -I\$(top_srcdir)/src -I\$(top_srcdir)/src/modules/interface"
-COMMON_CXXFLAGS="-DNDEBUG -I\$(srcdir)/interface -I\$(srcdir)/main/interface -I\$(top_srcdir)/src -I\$(top_srcdir)/src/modules/interface"
+COMMON_CFLAGS="-DNDEBUG -I\$(top_srcdir)"
+COMMON_CXXFLAGS="-std=c++11 -DNDEBUG -I\$(top_srcdir)"
 AC_SUBST([COMMON_CFLAGS])
 AC_SUBST([COMMON_CXXFLAGS])
 
 AC_CONFIG_FILES([
 webrtc-audio-processing.pc
 Makefile
-src/Makefile
-src/common_audio/Makefile
-src/common_audio/signal_processing_library/Makefile
-src/common_audio/vad/Makefile
-src/system_wrappers/Makefile
-src/modules/Makefile
-src/modules/audio_processing/Makefile
-src/modules/audio_processing/utility/Makefile
-src/modules/audio_processing/ns/Makefile
-src/modules/audio_processing/aec/Makefile
-src/modules/audio_processing/aecm/Makefile
-src/modules/audio_processing/agc/Makefile
+webrtc/Makefile
+webrtc/common_audio/Makefile
+webrtc/system_wrappers/Makefile
+webrtc/modules/Makefile
+webrtc/modules/audio_processing/Makefile
+webrtc/modules/audio_processing/utility/Makefile
+webrtc/modules/audio_processing/ns/Makefile
+webrtc/modules/audio_processing/aec/Makefile
+webrtc/modules/audio_processing/aecm/Makefile
+webrtc/modules/audio_processing/agc/Makefile
 ])
 
 AC_OUTPUT

@@ -1,0 +1,74 @@
+noinst_LTLIBRARIES = libcommon_audio.la
+
+libcommon_audio_la_SOURCES = signal_processing/include/real_fft.h \
+			     signal_processing/include/signal_processing_library.h \
+			     signal_processing/include/spl_inl.h \
+			     signal_processing/include/spl_inl_armv7.h \
+			     signal_processing/include/spl_inl_mips.h \
+			     signal_processing/auto_corr_to_refl_coef.c \
+			     signal_processing/auto_correlation.c \
+			     signal_processing/complex_bit_reverse.c \
+			     signal_processing/complex_fft.c \
+			     signal_processing/complex_fft_tables.h \
+			     signal_processing/copy_set_operations.c \
+			     signal_processing/cross_correlation.c \
+			     signal_processing/division_operations.c \
+			     signal_processing/dot_product_with_scale.c \
+			     signal_processing/downsample_fast.c \
+			     signal_processing/energy.c \
+			     signal_processing/filter_ar.c \
+			     signal_processing/filter_ar_fast_q12.c \
+			     signal_processing/filter_ma_fast_q12.c \
+			     signal_processing/get_hanning_window.c \
+			     signal_processing/get_scaling_square.c \
+			     signal_processing/ilbc_specific_functions.c \
+			     signal_processing/levinson_durbin.c \
+			     signal_processing/lpc_to_refl_coef.c \
+			     signal_processing/min_max_operations.c \
+			     signal_processing/randomization_functions.c \
+			     signal_processing/real_fft.c \
+			     signal_processing/refl_coef_to_lpc.c \
+			     signal_processing/resample.c \
+			     signal_processing/resample_48khz.c \
+			     signal_processing/resample_by_2.c \
+			     signal_processing/resample_by_2_internal.c \
+			     signal_processing/resample_by_2_internal.h \
+			     signal_processing/resample_fractional.c \
+			     signal_processing/spl_init.c \
+			     signal_processing/spl_sqrt.c \
+			     signal_processing/spl_sqrt_floor.c \
+			     signal_processing/splitting_filter.c \
+			     signal_processing/sqrt_of_one_minus_x_squared.c \
+			     signal_processing/vector_scaling_operations.c \
+			     vad/include/vad.h \
+			     vad/include/webrtc_vad.h \
+			     vad/vad.cc \
+			     vad/vad_core.c \
+			     vad/vad_core.h \
+			     vad/vad_filterbank.c \
+			     vad/vad_filterbank.h \
+			     vad/vad_gmm.c \
+			     vad/vad_gmm.h \
+			     vad/vad_sp.c \
+			     vad/vad_sp.h \
+			     vad/webrtc_vad.c
+
+libcommon_audio_la_CFLAGS = $(AM_CFLAGS) $(COMMON_CFLAGS)
+libcommon_audio_la_CXXFLAGS = $(AM_CXXFLAGS) $(COMMON_CXXFLAGS)
+
+# FIXME:
+# if ARM  - signal_processing/complex_bit_reverse_arm.S
+#           signal_processing/spl_sqrt_floor_arm.S
+#    ARM7 - signal_processing/filter_ar_fast_q12_armv7.S
+#    NEON - signal_processing/cross_correlation_neon.c
+#           signal_processing/downsample_fast_neon.c
+#           signal_processing/min_max_operations_neon.c
+# if MIPS - signal_processing/complex_bit_reverse_mips.c
+#           signal_processing/complex_fft_mips.c
+#           signal_processing/cross_correlation_mips.c
+#           signal_processing/downsample_fast_mips.c
+#           signal_processing/filter_ar_fast_q12_mips.c
+#           signal_processing/min_max_operations_mips.c
+#           signal_processing/resample_by_2_mips.c
+#           signal_processing/spl_sqrt_floor_mips.c
+#           signal_processing/vector_scaling_operations_mips.c
