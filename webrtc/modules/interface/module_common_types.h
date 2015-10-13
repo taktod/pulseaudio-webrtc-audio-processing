@@ -19,7 +19,9 @@
 
 #include "webrtc/base/constructormagic.h"
 #include "webrtc/common_types.h"
+#ifndef WEBRTC_AUDIO_PROCESSING_ONLY_BUILD
 #include "webrtc/common_video/rotation.h"
+#endif
 #include "webrtc/typedefs.h"
 
 namespace webrtc {
@@ -233,6 +235,7 @@ enum RtpVideoCodecTypes {
   kRtpVideoVp9,
   kRtpVideoH264
 };
+#ifndef WEBRTC_AUDIO_PROCESSING_ONLY_BUILD
 // Since RTPVideoHeader is used as a member of a union, it can't have a
 // non-trivial default constructor.
 struct RTPVideoHeader {
@@ -246,9 +249,12 @@ struct RTPVideoHeader {
   RtpVideoCodecTypes codec;
   RTPVideoTypeHeader codecHeader;
 };
+#endif
 union RTPTypeHeader {
   RTPAudioHeader Audio;
+#ifndef WEBRTC_AUDIO_PROCESSING_ONLY_BUILD
   RTPVideoHeader Video;
+#endif
 };
 
 struct WebRtcRTPHeader {

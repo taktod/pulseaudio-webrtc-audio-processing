@@ -15,7 +15,9 @@
 #include <set>
 
 #include "webrtc/base/scoped_ptr.h"
+#ifndef WEBRTC_AUDIO_PROCESSING_ONLY_BUILD
 #include "webrtc/test/testsupport/gtest_prod_util.h"
+#endif
 #include "webrtc/typedefs.h"
 
 namespace webrtc {
@@ -59,8 +61,10 @@ class TransientSuppressor {
                bool key_pressed);
 
  private:
+#ifndef WEBRTC_AUDIO_PROCESSING_ONLY_BUILD
   FRIEND_TEST_ALL_PREFIXES(TransientSuppressorTest,
                            TypingDetectionLogicWorksAsExpectedForMono);
+#endif
   void Suppress(float* in_ptr, float* spectral_mean, float* out_ptr);
 
   void UpdateKeypress(bool key_pressed);

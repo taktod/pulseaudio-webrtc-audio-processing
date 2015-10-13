@@ -16,7 +16,9 @@
 #include "webrtc/base/checks.h"
 #include "webrtc/base/scoped_ptr.h"
 #include "webrtc/common_audio/include/audio_util.h"
+#ifndef WEBRTC_AUDIO_PROCESSING_ONLY_BUILD
 #include "webrtc/test/testsupport/gtest_prod_util.h"
+#endif
 
 namespace webrtc {
 

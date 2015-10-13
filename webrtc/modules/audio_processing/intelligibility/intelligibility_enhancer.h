@@ -95,8 +95,10 @@ class IntelligibilityEnhancer {
     AudioSource source_;
   };
   friend class TransformCallback;
+#ifndef WEBRTC_AUDIO_PROCESSING_ONLY_BUILD
   FRIEND_TEST_ALL_PREFIXES(IntelligibilityEnhancerTest, TestErbCreation);
   FRIEND_TEST_ALL_PREFIXES(IntelligibilityEnhancerTest, TestSolveForGains);
+#endif
 
   // Sends streams to ProcessClearBlock or ProcessNoiseBlock based on source.
   void DispatchAudio(AudioSource source,
