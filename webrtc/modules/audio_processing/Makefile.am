@@ -153,6 +153,8 @@ libwebrtc_audio_processing_la_LIBADD = $(top_builddir)/webrtc/base/libbase.la \
 				       $(top_builddir)/webrtc/modules/audio_coding/libaudio_coding.la
 libwebrtc_audio_processing_la_LDFLAGS = $(AM_LDFLAGS) -version-info $(LIBWEBRTC_AUDIO_PROCESSING_VERSION_INFO)
 
+EXTRA_DIST = BUILD.gn
+
 # FIXME:
 # x86:  aec/aec_core_sse2.c
 # 	aec/aec_rdft_sse2.c

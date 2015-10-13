@@ -45,7 +45,8 @@ libsystem_wrappers_la_SOURCES += source/critical_section_posix.cc \
 				 source/trace_posix.cc
 libsystem_wrappers_la_CXXFLAGS = $(AM_CXXFLAGS) $(COMMON_CXXFLAGS)
 
-EXTRA_DIST = source/critical_section_win.cc \
+EXTRA_DIST = BUILD.gn \
+	     source/critical_section_win.cc \
 	     source/event_timer_win.cc \
 	     source/rw_lock_generic.cc \
 	     source/rw_lock_win.cc \

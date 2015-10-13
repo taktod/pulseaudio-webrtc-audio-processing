@@ -33,3 +33,5 @@ libaudio_coding_la_SOURCES = codecs/isac/main/interface/isac.h \
 
 libaudio_coding_la_CFLAGS = $(AM_CFLAGS) $(COMMON_CFLAGS)
 libaudio_coding_la_CXXFLAGS = $(AM_CXXFLAGS) $(COMMON_CXXFLAGS)
+
+EXTRA_DIST = BUILD.gn

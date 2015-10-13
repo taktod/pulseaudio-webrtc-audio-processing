@@ -1,6 +1,7 @@
 noinst_LTLIBRARIES = libbase.la
 
 noinst_HEADERS = arraysize.h \
+		 atomicops.h \
 		 basictypes.h \
 		 checks.h \
 		 constructormagic.h \
@@ -25,3 +26,5 @@ libbase_la_SOURCES = criticalsection.cc \
 		     thread_checker_impl.h
 
 libbase_la_CXXFLAGS = $(AM_CXXFLAGS) $(COMMON_CXXFLAGS)
+
+EXTRA_DIST = BUILD.gn

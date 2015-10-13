@@ -1,7 +1,8 @@
 noinst_LTLIBRARIES = libcommon_audio.la
 
-libcommon_audio_la_SOURCES = \
-			     resampler/include/push_resampler.h \
+noinst_HEADERS = include/audio_util.h
+
+libcommon_audio_la_SOURCES = resampler/include/push_resampler.h \
 			     resampler/include/resampler.h \
 			     resampler/push_sinc_resampler.h \
 			     resampler/sinc_resampler.h \
@@ -98,6 +99,8 @@ libcommon_audio_la_SOURCES = \
 
 libcommon_audio_la_CFLAGS = $(AM_CFLAGS) $(COMMON_CFLAGS)
 libcommon_audio_la_CXXFLAGS = $(AM_CXXFLAGS) $(COMMON_CXXFLAGS)
+
+EXTRA_DIST = BUILD.gn
 
 # FIXME:
 # x86  - resampler/sinc_resampler_sse.cc
