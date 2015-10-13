@@ -5,6 +5,7 @@
 .*.swp
 *~
 .deps*
+.dirstamp
 .libs*
 Makefile
 Makefile.in
@@ -27,4 +28,3 @@ ltmain.sh
 missing
 mkinstalldirs
 stamp-*
-
