@@ -24,8 +24,8 @@ AS_CASE(["x${with_ns_mode}"],
 	[NS_FIXED=0])
 AM_CONDITIONAL(NS_FIXED, [test "x${NS_FIXED}" = "x1"])
 
-COMMON_CFLAGS="-DNDEBUG -I\$(top_srcdir)"
-COMMON_CXXFLAGS="-std=c++11 -DNDEBUG -I\$(top_srcdir)"
+COMMON_CFLAGS="-DWEBRTC_POSIX -DWEBRTC_LINUX -DNDEBUG -I\$(top_srcdir)"
+COMMON_CXXFLAGS="-std=c++11 -DWEBRTC_POSIX -DWEBRTC_LINUX -DNDEBUG -I\$(top_srcdir)"
 AC_SUBST([COMMON_CFLAGS])
 AC_SUBST([COMMON_CXXFLAGS])
 
@@ -33,15 +33,12 @@ AC_CONFIG_FILES([
 webrtc-audio-processing.pc
 Makefile
 webrtc/Makefile
+webrtc/base/Makefile
 webrtc/common_audio/Makefile
 webrtc/system_wrappers/Makefile
 webrtc/modules/Makefile
+webrtc/modules/audio_coding/Makefile
 webrtc/modules/audio_processing/Makefile
-webrtc/modules/audio_processing/utility/Makefile
-webrtc/modules/audio_processing/ns/Makefile
-webrtc/modules/audio_processing/aec/Makefile
-webrtc/modules/audio_processing/aecm/Makefile
-webrtc/modules/audio_processing/agc/Makefile
 ])
 
 AC_OUTPUT

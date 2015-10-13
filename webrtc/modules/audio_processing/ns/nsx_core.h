@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2011 The WebRTC project authors. All Rights Reserved.
+ *  Copyright (c) 2012 The WebRTC project authors. All Rights Reserved.
  *
  *  Use of this source code is governed by a BSD-style license
  *  that can be found in the LICENSE file in the root of the source
@@ -11,95 +11,103 @@
 #ifndef WEBRTC_MODULES_AUDIO_PROCESSING_NS_MAIN_SOURCE_NSX_CORE_H_
 #define WEBRTC_MODULES_AUDIO_PROCESSING_NS_MAIN_SOURCE_NSX_CORE_H_
 
-#include "typedefs.h"
-#include "signal_processing_library.h"
-
-#include "nsx_defines.h"
-
 #ifdef NS_FILEDEBUG
 #include <stdio.h>
 #endif
 
-typedef struct NsxInst_t_ {
-  WebRtc_UWord32          fs;
+#include "webrtc/common_audio/signal_processing/include/signal_processing_library.h"
+#include "webrtc/modules/audio_processing/ns/nsx_defines.h"
+#include "webrtc/typedefs.h"
 
-  const WebRtc_Word16*    window;
-  WebRtc_Word16           analysisBuffer[ANAL_BLOCKL_MAX];
-  WebRtc_Word16           synthesisBuffer[ANAL_BLOCKL_MAX];
-  WebRtc_UWord16          noiseSupFilter[HALF_ANAL_BLOCKL];
-  WebRtc_UWord16          overdrive; /* Q8 */
-  WebRtc_UWord16          denoiseBound; /* Q14 */
-  const WebRtc_Word16*    factor2Table;
-  WebRtc_Word16           noiseEstLogQuantile[SIMULT* HALF_ANAL_BLOCKL];
-  WebRtc_Word16           noiseEstDensity[SIMULT* HALF_ANAL_BLOCKL];
-  WebRtc_Word16           noiseEstCounter[SIMULT];
-  WebRtc_Word16           noiseEstQuantile[HALF_ANAL_BLOCKL];
+typedef struct NoiseSuppressionFixedC_ {
+  uint32_t                fs;
 
-  WebRtc_Word16           anaLen;
-  int                     anaLen2;
-  int                     magnLen;
+  const int16_t*          window;
+  int16_t                 analysisBuffer[ANAL_BLOCKL_MAX];
+  int16_t                 synthesisBuffer[ANAL_BLOCKL_MAX];
+  uint16_t                noiseSupFilter[HALF_ANAL_BLOCKL];
+  uint16_t                overdrive; /* Q8 */
+  uint16_t                denoiseBound; /* Q14 */
+  const int16_t*          factor2Table;
+  int16_t                 noiseEstLogQuantile[SIMULT* HALF_ANAL_BLOCKL];
+  int16_t                 noiseEstDensity[SIMULT* HALF_ANAL_BLOCKL];
+  int16_t                 noiseEstCounter[SIMULT];
+  int16_t                 noiseEstQuantile[HALF_ANAL_BLOCKL];
+
+  size_t                  anaLen;
+  size_t                  anaLen2;
+  size_t                  magnLen;
   int                     aggrMode;
   int                     stages;
   int                     initFlag;
   int                     gainMap;
 
-  WebRtc_Word32           maxLrt;
-  WebRtc_Word32           minLrt;
-  WebRtc_Word32           logLrtTimeAvgW32[HALF_ANAL_BLOCKL]; //log lrt factor with time-smoothing in Q8
-  WebRtc_Word32           featureLogLrt;
-  WebRtc_Word32           thresholdLogLrt;
-  WebRtc_Word16           weightLogLrt;
+  int32_t                 maxLrt;
+  int32_t                 minLrt;
+  // Log LRT factor with time-smoothing in Q8.
+  int32_t                 logLrtTimeAvgW32[HALF_ANAL_BLOCKL];
+  int32_t                 featureLogLrt;
+  int32_t                 thresholdLogLrt;
+  int16_t                 weightLogLrt;
 
-  WebRtc_UWord32          featureSpecDiff;
-  WebRtc_UWord32          thresholdSpecDiff;
-  WebRtc_Word16           weightSpecDiff;
+  uint32_t                featureSpecDiff;
+  uint32_t                thresholdSpecDiff;
+  int16_t                 weightSpecDiff;
 
-  WebRtc_UWord32          featureSpecFlat;
-  WebRtc_UWord32          thresholdSpecFlat;
-  WebRtc_Word16           weightSpecFlat;
+  uint32_t                featureSpecFlat;
+  uint32_t                thresholdSpecFlat;
+  int16_t                 weightSpecFlat;
 
-  WebRtc_Word32           avgMagnPause[HALF_ANAL_BLOCKL]; //conservative estimate of noise spectrum
-  WebRtc_UWord32          magnEnergy;
-  WebRtc_UWord32          sumMagn;
-  WebRtc_UWord32          curAvgMagnEnergy;
-  WebRtc_UWord32          timeAvgMagnEnergy;
-  WebRtc_UWord32          timeAvgMagnEnergyTmp;
+  // Conservative estimate of noise spectrum.
+  int32_t                 avgMagnPause[HALF_ANAL_BLOCKL];
+  uint32_t                magnEnergy;
+  uint32_t                sumMagn;
+  uint32_t                curAvgMagnEnergy;
+  uint32_t                timeAvgMagnEnergy;
+  uint32_t                timeAvgMagnEnergyTmp;
 
-  WebRtc_UWord32          whiteNoiseLevel;              //initial noise estimate
-  WebRtc_UWord32          initMagnEst[HALF_ANAL_BLOCKL];//initial magnitude spectrum estimate
-  WebRtc_Word32           pinkNoiseNumerator;           //pink noise parameter: numerator
-  WebRtc_Word32           pinkNoiseExp;                 //pink noise parameter: power of freq
-  int                     minNorm;                      //smallest normalization factor
-  int                     zeroInputSignal;              //zero input signal flag
+  uint32_t                whiteNoiseLevel;  // Initial noise estimate.
+  // Initial magnitude spectrum estimate.
+  uint32_t                initMagnEst[HALF_ANAL_BLOCKL];
+  // Pink noise parameters:
+  int32_t                 pinkNoiseNumerator;  // Numerator.
+  int32_t                 pinkNoiseExp;  // Power of freq.
+  int                     minNorm;  // Smallest normalization factor.
+  int                     zeroInputSignal;  // Zero input signal flag.
 
-  WebRtc_UWord32          prevNoiseU32[HALF_ANAL_BLOCKL]; //noise spectrum from previous frame
-  WebRtc_UWord16          prevMagnU16[HALF_ANAL_BLOCKL]; //magnitude spectrum from previous frame
-  WebRtc_Word16           priorNonSpeechProb; //prior speech/noise probability // Q14
+  // Noise spectrum from previous frame.
+  uint32_t                prevNoiseU32[HALF_ANAL_BLOCKL];
+  // Magnitude spectrum from previous frame.
+  uint16_t                prevMagnU16[HALF_ANAL_BLOCKL];
+  // Prior speech/noise probability in Q14.
+  int16_t                 priorNonSpeechProb;
 
-  int                     blockIndex; //frame index counter
-  int                     modelUpdate; //parameter for updating or estimating thresholds/weights for prior model
+  int                     blockIndex;  // Frame index counter.
+  // Parameter for updating or estimating thresholds/weights for prior model.
+  int                     modelUpdate;
   int                     cntThresUpdate;
 
-  //histograms for parameter estimation
-  WebRtc_Word16           histLrt[HIST_PAR_EST];
-  WebRtc_Word16           histSpecFlat[HIST_PAR_EST];
-  WebRtc_Word16           histSpecDiff[HIST_PAR_EST];
+  // Histograms for parameter estimation.
+  int16_t                 histLrt[HIST_PAR_EST];
+  int16_t                 histSpecFlat[HIST_PAR_EST];
+  int16_t                 histSpecDiff[HIST_PAR_EST];
 
-  //quantities for high band estimate
-  WebRtc_Word16           dataBufHBFX[ANAL_BLOCKL_MAX]; /* Q0 */
+  // Quantities for high band estimate.
+  int16_t                 dataBufHBFX[NUM_HIGH_BANDS_MAX][ANAL_BLOCKL_MAX];
 
   int                     qNoise;
   int                     prevQNoise;
   int                     prevQMagn;
-  int                     blockLen10ms;
+  size_t                  blockLen10ms;
 
-  WebRtc_Word16           real[ANAL_BLOCKL_MAX];
-  WebRtc_Word16           imag[ANAL_BLOCKL_MAX];
-  WebRtc_Word32           energyIn;
+  int16_t                 real[ANAL_BLOCKL_MAX];
+  int16_t                 imag[ANAL_BLOCKL_MAX];
+  int32_t                 energyIn;
   int                     scaleEnergyIn;
   int                     normData;
 
-} NsxInst_t;
+  struct RealFFT* real_fft;
+} NoiseSuppressionFixedC;
 
 #ifdef __cplusplus
 extern "C"
@@ -121,7 +129,7 @@ extern "C"
  * Return value         :  0 - Ok
  *                        -1 - Error
  */
-WebRtc_Word32 WebRtcNsx_InitCore(NsxInst_t* inst, WebRtc_UWord32 fs);
+int32_t WebRtcNsx_InitCore(NoiseSuppressionFixedC* inst, uint32_t fs);
 
 /****************************************************************************
  * WebRtcNsx_set_policy_core(...)
@@ -129,16 +137,16 @@ WebRtc_Word32 WebRtcNsx_InitCore(NsxInst_t* inst, WebRtc_UWord32 fs);
  * This changes the aggressiveness of the noise suppression method.
  *
  * Input:
- *      - inst          : Instance that should be initialized
- *      - mode          : 0: Mild (6 dB), 1: Medium (10 dB), 2: Aggressive (15 dB)
+ *      - inst       : Instance that should be initialized
+ *      - mode       : 0: Mild (6 dB), 1: Medium (10 dB), 2: Aggressive (15 dB)
  *
  * Output:
- *      - NS_inst      : Initialized instance
+ *      - inst       : Initialized instance
  *
- * Return value         :  0 - Ok
- *                        -1 - Error
+ * Return value      :  0 - Ok
+ *                     -1 - Error
  */
-int WebRtcNsx_set_policy_core(NsxInst_t* inst, int mode);
+int WebRtcNsx_set_policy_core(NoiseSuppressionFixedC* inst, int mode);
 
 /****************************************************************************
  * WebRtcNsx_ProcessCore
@@ -147,34 +155,109 @@ int WebRtcNsx_set_policy_core(NsxInst_t* inst, int mode);
  *
  * Input:
  *      - inst          : Instance that should be initialized
- *      - inFrameLow    : Input speech frame for lower band
- *      - inFrameHigh   : Input speech frame for higher band
+ *      - inFrame       : Input speech frame for each band
+ *      - num_bands     : Number of bands
  *
  * Output:
  *      - inst          : Updated instance
- *      - outFrameLow   : Output speech frame for lower band
- *      - outFrameHigh  : Output speech frame for higher band
- *
- * Return value         :  0 - OK
- *                        -1 - Error
+ *      - outFrame      : Output speech frame for each band
  */
-int WebRtcNsx_ProcessCore(NsxInst_t* inst, short* inFrameLow, short* inFrameHigh,
-                          short* outFrameLow, short* outFrameHigh);
+void WebRtcNsx_ProcessCore(NoiseSuppressionFixedC* inst,
+                           const short* const* inFrame,
+                           int num_bands,
+                           short* const* outFrame);
 
 /****************************************************************************
- * Internal functions and variable declarations shared with optimized code.
+ * Some function pointers, for internal functions shared by ARM NEON and
+ * generic C code.
  */
-void WebRtcNsx_UpdateNoiseEstimate(NsxInst_t* inst, int offset);
+// Noise Estimation.
+typedef void (*NoiseEstimation)(NoiseSuppressionFixedC* inst,
+                                uint16_t* magn,
+                                uint32_t* noise,
+                                int16_t* q_noise);
+extern NoiseEstimation WebRtcNsx_NoiseEstimation;
 
-void WebRtcNsx_NoiseEstimation(NsxInst_t* inst, WebRtc_UWord16* magn, WebRtc_UWord32* noise,
-                               WebRtc_Word16* qNoise);
+// Filter the data in the frequency domain, and create spectrum.
+typedef void (*PrepareSpectrum)(NoiseSuppressionFixedC* inst,
+                                int16_t* freq_buff);
+extern PrepareSpectrum WebRtcNsx_PrepareSpectrum;
 
-extern const WebRtc_Word16 WebRtcNsx_kLogTable[9];
-extern const WebRtc_Word16 WebRtcNsx_kLogTableFrac[256];
-extern const WebRtc_Word16 WebRtcNsx_kCounterDiv[201];
+// For the noise supression process, synthesis, read out fully processed
+// segment, and update synthesis buffer.
+typedef void (*SynthesisUpdate)(NoiseSuppressionFixedC* inst,
+                                int16_t* out_frame,
+                                int16_t gain_factor);
+extern SynthesisUpdate WebRtcNsx_SynthesisUpdate;
+
+// Update analysis buffer for lower band, and window data before FFT.
+typedef void (*AnalysisUpdate)(NoiseSuppressionFixedC* inst,
+                               int16_t* out,
+                               int16_t* new_speech);
+extern AnalysisUpdate WebRtcNsx_AnalysisUpdate;
+
+// Denormalize the real-valued signal |in|, the output from inverse FFT.
+typedef void (*Denormalize)(NoiseSuppressionFixedC* inst,
+                            int16_t* in,
+                            int factor);
+extern Denormalize WebRtcNsx_Denormalize;
+
+// Normalize the real-valued signal |in|, the input to forward FFT.
+typedef void (*NormalizeRealBuffer)(NoiseSuppressionFixedC* inst,
+                                    const int16_t* in,
+                                    int16_t* out);
+extern NormalizeRealBuffer WebRtcNsx_NormalizeRealBuffer;
+
+// Compute speech/noise probability.
+// Intended to be private.
+void WebRtcNsx_SpeechNoiseProb(NoiseSuppressionFixedC* inst,
+                               uint16_t* nonSpeechProbFinal,
+                               uint32_t* priorLocSnr,
+                               uint32_t* postLocSnr);
+
+#if (defined WEBRTC_DETECT_NEON || defined WEBRTC_HAS_NEON)
+// For the above function pointers, functions for generic platforms are declared
+// and defined as static in file nsx_core.c, while those for ARM Neon platforms
+// are declared below and defined in file nsx_core_neon.c.
+void WebRtcNsx_NoiseEstimationNeon(NoiseSuppressionFixedC* inst,
+                                   uint16_t* magn,
+                                   uint32_t* noise,
+                                   int16_t* q_noise);
+void WebRtcNsx_SynthesisUpdateNeon(NoiseSuppressionFixedC* inst,
+                                   int16_t* out_frame,
+                                   int16_t gain_factor);
+void WebRtcNsx_AnalysisUpdateNeon(NoiseSuppressionFixedC* inst,
+                                  int16_t* out,
+                                  int16_t* new_speech);
+void WebRtcNsx_PrepareSpectrumNeon(NoiseSuppressionFixedC* inst,
+                                   int16_t* freq_buff);
+#endif
+
+#if defined(MIPS32_LE)
+// For the above function pointers, functions for generic platforms are declared
+// and defined as static in file nsx_core.c, while those for MIPS platforms
+// are declared below and defined in file nsx_core_mips.c.
+void WebRtcNsx_SynthesisUpdate_mips(NoiseSuppressionFixedC* inst,
+                                    int16_t* out_frame,
+                                    int16_t gain_factor);
+void WebRtcNsx_AnalysisUpdate_mips(NoiseSuppressionFixedC* inst,
+                                   int16_t* out,
+                                   int16_t* new_speech);
+void WebRtcNsx_PrepareSpectrum_mips(NoiseSuppressionFixedC* inst,
+                                    int16_t* freq_buff);
+void WebRtcNsx_NormalizeRealBuffer_mips(NoiseSuppressionFixedC* inst,
+                                        const int16_t* in,
+                                        int16_t* out);
+#if defined(MIPS_DSP_R1_LE)
+void WebRtcNsx_Denormalize_mips(NoiseSuppressionFixedC* inst,
+                                int16_t* in,
+                                int factor);
+#endif
+
+#endif
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif // WEBRTC_MODULES_AUDIO_PROCESSING_NS_MAIN_SOURCE_NSX_CORE_H_
+#endif  // WEBRTC_MODULES_AUDIO_PROCESSING_NS_MAIN_SOURCE_NSX_CORE_H_

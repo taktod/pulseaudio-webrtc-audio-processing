@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2011 The WebRTC project authors. All Rights Reserved.
+ *  Copyright (c) 2012 The WebRTC project authors. All Rights Reserved.
  *
  *  Use of this source code is governed by a BSD-style license
  *  that can be found in the LICENSE file in the root of the source
@@ -8,23 +8,22 @@
  *  be found in the AUTHORS file in the root of the source tree.
  */
 
-#include "echo_control_mobile_impl.h"
+#include "webrtc/modules/audio_processing/echo_control_mobile_impl.h"
 
-#include <cassert>
-#include <cstring>
+#include <assert.h>
+#include <string.h>
 
-#include "critical_section_wrapper.h"
-#include "echo_control_mobile.h"
-
-#include "audio_processing_impl.h"
-#include "audio_buffer.h"
+#include "webrtc/modules/audio_processing/aecm/include/echo_control_mobile.h"
+#include "webrtc/modules/audio_processing/audio_buffer.h"
+#include "webrtc/system_wrappers/interface/critical_section_wrapper.h"
+#include "webrtc/system_wrappers/interface/logging.h"
 
 namespace webrtc {
 
 typedef void Handle;
 
 namespace {
-WebRtc_Word16 MapSetting(EchoControlMobile::RoutingMode mode) {
+int16_t MapSetting(EchoControlMobile::RoutingMode mode) {
   switch (mode) {
     case EchoControlMobile::kQuietEarpieceOrHeadset:
       return 0;
@@ -36,12 +35,12 @@ WebRtc_Word16 MapSetting(EchoControlMobile::RoutingMode mode) {
       return 3;
     case EchoControlMobile::kLoudSpeakerphone:
       return 4;
-    default:
-      return -1;
   }
+  assert(false);
+  return -1;
 }
 
-int MapError(int err) {
+AudioProcessing::Error MapError(int err) {
   switch (err) {
     case AECM_UNSUPPORTED_FUNCTION_ERROR:
       return AudioProcessing::kUnsupportedFunctionError;
@@ -63,9 +62,11 @@ size_t EchoControlMobile::echo_path_size_bytes() {
     return WebRtcAecm_echo_path_size_bytes();
 }
 
-EchoControlMobileImpl::EchoControlMobileImpl(const AudioProcessingImpl* apm)
-  : ProcessingComponent(apm),
+EchoControlMobileImpl::EchoControlMobileImpl(const AudioProcessing* apm,
+                                             CriticalSectionWrapper* crit)
+  : ProcessingComponent(),
     apm_(apm),
+    crit_(crit),
     routing_mode_(kSpeakerphone),
     comfort_noise_enabled_(true),
     external_echo_path_(NULL) {}
@@ -82,7 +83,7 @@ int EchoControlMobileImpl::ProcessRenderAudio(const AudioBuffer* audio) {
     return apm_->kNoError;
   }
 
-  assert(audio->samples_per_split_channel() <= 160);
+  assert(audio->num_frames_per_band() <= 160);
   assert(audio->num_channels() == apm_->num_reverse_channels());
 
   int err = apm_->kNoError;
@@ -94,8 +95,8 @@ int EchoControlMobileImpl::ProcessRenderAudio(const AudioBuffer* audio) {
       Handle* my_handle = static_cast<Handle*>(handle(handle_index));
       err = WebRtcAecm_BufferFarend(
           my_handle,
-          audio->low_pass_split_data(j),
-          static_cast<WebRtc_Word16>(audio->samples_per_split_channel()));
+          audio->split_bands_const(j)[kBand0To8kHz],
+          audio->num_frames_per_band());
 
       if (err != apm_->kNoError) {
         return GetHandleError(my_handle);  // TODO(ajm): warning possible?
@@ -117,7 +118,7 @@ int EchoControlMobileImpl::ProcessCaptureAudio(AudioBuffer* audio) {
     return apm_->kStreamParameterNotSetError;
   }
 
-  assert(audio->samples_per_split_channel() <= 160);
+  assert(audio->num_frames_per_band() <= 160);
   assert(audio->num_channels() == apm_->num_output_channels());
 
   int err = apm_->kNoError;
@@ -127,8 +128,8 @@ int EchoControlMobileImpl::ProcessCaptureAudio(AudioBuffer* audio) {
   for (int i = 0; i < audio->num_channels(); i++) {
     // TODO(ajm): improve how this works, possibly inside AECM.
     //            This is kind of hacked up.
-    WebRtc_Word16* noisy = audio->low_pass_reference(i);
-    WebRtc_Word16* clean = audio->low_pass_split_data(i);
+    const int16_t* noisy = audio->low_pass_reference(i);
+    const int16_t* clean = audio->split_bands_const(i)[kBand0To8kHz];
     if (noisy == NULL) {
       noisy = clean;
       clean = NULL;
@@ -139,8 +140,8 @@ int EchoControlMobileImpl::ProcessCaptureAudio(AudioBuffer* audio) {
           my_handle,
           noisy,
           clean,
-          audio->low_pass_split_data(i),
-          static_cast<WebRtc_Word16>(audio->samples_per_split_channel()),
+          audio->split_bands(i)[kBand0To8kHz],
+          audio->num_frames_per_band(),
           apm_->stream_delay_ms());
 
       if (err != apm_->kNoError) {
@@ -155,7 +156,7 @@ int EchoControlMobileImpl::ProcessCaptureAudio(AudioBuffer* audio) {
 }
 
 int EchoControlMobileImpl::Enable(bool enable) {
-  CriticalSectionScoped crit_scoped(*apm_->crit());
+  CriticalSectionScoped crit_scoped(crit_);
   // Ensure AEC and AECM are not both enabled.
   if (enable && apm_->echo_cancellation()->is_enabled()) {
     return apm_->kBadParameterError;
@@ -169,7 +170,7 @@ bool EchoControlMobileImpl::is_enabled() const {
 }
 
 int EchoControlMobileImpl::set_routing_mode(RoutingMode mode) {
-  CriticalSectionScoped crit_scoped(*apm_->crit());
+  CriticalSectionScoped crit_scoped(crit_);
   if (MapSetting(mode) == -1) {
     return apm_->kBadParameterError;
   }
@@ -184,7 +185,7 @@ EchoControlMobile::RoutingMode EchoControlMobileImpl::routing_mode()
 }
 
 int EchoControlMobileImpl::enable_comfort_noise(bool enable) {
-  CriticalSectionScoped crit_scoped(*apm_->crit());
+  CriticalSectionScoped crit_scoped(crit_);
   comfort_noise_enabled_ = enable;
   return Configure();
 }
@@ -195,7 +196,7 @@ bool EchoControlMobileImpl::is_comfort_noise_enabled() const {
 
 int EchoControlMobileImpl::SetEchoPath(const void* echo_path,
                                        size_t size_bytes) {
-  CriticalSectionScoped crit_scoped(*apm_->crit());
+  CriticalSectionScoped crit_scoped(crit_);
   if (echo_path == NULL) {
     return apm_->kNullPointerError;
   }
@@ -214,7 +215,7 @@ int EchoControlMobileImpl::SetEchoPath(const void* echo_path,
 
 int EchoControlMobileImpl::GetEchoPath(void* echo_path,
                                        size_t size_bytes) const {
-  CriticalSectionScoped crit_scoped(*apm_->crit());
+  CriticalSectionScoped crit_scoped(crit_);
   if (echo_path == NULL) {
     return apm_->kNullPointerError;
   }
@@ -240,42 +241,26 @@ int EchoControlMobileImpl::Initialize() {
     return apm_->kNoError;
   }
 
-  if (apm_->sample_rate_hz() == apm_->kSampleRate32kHz) {
-    // AECM doesn't support super-wideband.
+  if (apm_->proc_sample_rate_hz() > apm_->kSampleRate16kHz) {
+    LOG(LS_ERROR) << "AECM only supports 16 kHz or lower sample rates";
     return apm_->kBadSampleRateError;
   }
 
   return ProcessingComponent::Initialize();
 }
 
-int EchoControlMobileImpl::get_version(char* version,
-                                       int version_len_bytes) const {
-  if (WebRtcAecm_get_version(version, version_len_bytes) != 0) {
-    return apm_->kBadParameterError;
-  }
-
-  return apm_->kNoError;
-}
-
 void* EchoControlMobileImpl::CreateHandle() const {
-  Handle* handle = NULL;
-  if (WebRtcAecm_Create(&handle) != apm_->kNoError) {
-    handle = NULL;
-  } else {
-    assert(handle != NULL);
-  }
-
-  return handle;
+  return WebRtcAecm_Create();
 }
 
-int EchoControlMobileImpl::DestroyHandle(void* handle) const {
-  return WebRtcAecm_Free(static_cast<Handle*>(handle));
+void EchoControlMobileImpl::DestroyHandle(void* handle) const {
+  WebRtcAecm_Free(static_cast<Handle*>(handle));
 }
 
 int EchoControlMobileImpl::InitializeHandle(void* handle) const {
   assert(handle != NULL);
   Handle* my_handle = static_cast<Handle*>(handle);
-  if (WebRtcAecm_Init(my_handle, apm_->sample_rate_hz()) != 0) {
+  if (WebRtcAecm_Init(my_handle, apm_->proc_sample_rate_hz()) != 0) {
     return GetHandleError(my_handle);
   }
   if (external_echo_path_ != NULL) {

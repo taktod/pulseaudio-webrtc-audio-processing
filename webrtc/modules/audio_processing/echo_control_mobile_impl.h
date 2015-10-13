@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2011 The WebRTC project authors. All Rights Reserved.
+ *  Copyright (c) 2012 The WebRTC project authors. All Rights Reserved.
  *
  *  Use of this source code is governed by a BSD-style license
  *  that can be found in the LICENSE file in the root of the source
@@ -8,55 +8,57 @@
  *  be found in the AUTHORS file in the root of the source tree.
  */
 
-#ifndef WEBRTC_MODULES_AUDIO_PROCESSING_MAIN_SOURCE_ECHO_CONTROL_MOBILE_IMPL_H_
-#define WEBRTC_MODULES_AUDIO_PROCESSING_MAIN_SOURCE_ECHO_CONTROL_MOBILE_IMPL_H_
+#ifndef WEBRTC_MODULES_AUDIO_PROCESSING_ECHO_CONTROL_MOBILE_IMPL_H_
+#define WEBRTC_MODULES_AUDIO_PROCESSING_ECHO_CONTROL_MOBILE_IMPL_H_
 
-#include "audio_processing.h"
-#include "processing_component.h"
+#include "webrtc/modules/audio_processing/include/audio_processing.h"
+#include "webrtc/modules/audio_processing/processing_component.h"
 
 namespace webrtc {
-class AudioProcessingImpl;
+
 class AudioBuffer;
+class CriticalSectionWrapper;
 
 class EchoControlMobileImpl : public EchoControlMobile,
                               public ProcessingComponent {
  public:
-  explicit EchoControlMobileImpl(const AudioProcessingImpl* apm);
+  EchoControlMobileImpl(const AudioProcessing* apm,
+                        CriticalSectionWrapper* crit);
   virtual ~EchoControlMobileImpl();
 
   int ProcessRenderAudio(const AudioBuffer* audio);
   int ProcessCaptureAudio(AudioBuffer* audio);
 
   // EchoControlMobile implementation.
-  virtual bool is_enabled() const;
+  bool is_enabled() const override;
+  RoutingMode routing_mode() const override;
+  bool is_comfort_noise_enabled() const override;
 
   // ProcessingComponent implementation.
-  virtual int Initialize();
-  virtual int get_version(char* version, int version_len_bytes) const;
+  int Initialize() override;
 
  private:
   // EchoControlMobile implementation.
-  virtual int Enable(bool enable);
-  virtual int set_routing_mode(RoutingMode mode);
-  virtual RoutingMode routing_mode() const;
-  virtual int enable_comfort_noise(bool enable);
-  virtual bool is_comfort_noise_enabled() const;
-  virtual int SetEchoPath(const void* echo_path, size_t size_bytes);
-  virtual int GetEchoPath(void* echo_path, size_t size_bytes) const;
+  int Enable(bool enable) override;
+  int set_routing_mode(RoutingMode mode) override;
+  int enable_comfort_noise(bool enable) override;
+  int SetEchoPath(const void* echo_path, size_t size_bytes) override;
+  int GetEchoPath(void* echo_path, size_t size_bytes) const override;
 
   // ProcessingComponent implementation.
-  virtual void* CreateHandle() const;
-  virtual int InitializeHandle(void* handle) const;
-  virtual int ConfigureHandle(void* handle) const;
-  virtual int DestroyHandle(void* handle) const;
-  virtual int num_handles_required() const;
-  virtual int GetHandleError(void* handle) const;
+  void* CreateHandle() const override;
+  int InitializeHandle(void* handle) const override;
+  int ConfigureHandle(void* handle) const override;
+  void DestroyHandle(void* handle) const override;
+  int num_handles_required() const override;
+  int GetHandleError(void* handle) const override;
 
-  const AudioProcessingImpl* apm_;
+  const AudioProcessing* apm_;
+  CriticalSectionWrapper* crit_;
   RoutingMode routing_mode_;
   bool comfort_noise_enabled_;
   unsigned char* external_echo_path_;
 };
 }  // namespace webrtc
 
-#endif  // WEBRTC_MODULES_AUDIO_PROCESSING_MAIN_SOURCE_ECHO_CONTROL_MOBILE_IMPL_H_
+#endif  // WEBRTC_MODULES_AUDIO_PROCESSING_ECHO_CONTROL_MOBILE_IMPL_H_

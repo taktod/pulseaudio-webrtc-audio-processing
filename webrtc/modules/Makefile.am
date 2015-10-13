@@ -1,1 +1,1 @@
-SUBDIRS = audio_processing
+SUBDIRS = audio_coding audio_processing

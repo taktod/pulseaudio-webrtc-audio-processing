@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2011 The WebRTC project authors. All Rights Reserved.
+ *  Copyright (c) 2012 The WebRTC project authors. All Rights Reserved.
  *
  *  Use of this source code is governed by a BSD-style license
  *  that can be found in the LICENSE file in the root of the source
@@ -8,22 +8,16 @@
  *  be found in the AUTHORS file in the root of the source tree.
  */
 
-#include <stdlib.h>
-//#include <string.h>
+#include "webrtc/modules/audio_processing/aecm/include/echo_control_mobile.h"
 
-#include "echo_control_mobile.h"
-#include "aecm_core.h"
-#include "ring_buffer.h"
 #ifdef AEC_DEBUG
 #include <stdio.h>
 #endif
-#ifdef MAC_IPHONE_PRINT
-#include <time.h>
-#include <stdio.h>
-#elif defined ARM_WINM_LOG
-#include "windows.h"
-extern HANDLE logFile;
-#endif
+#include <stdlib.h>
+
+#include "webrtc/common_audio/ring_buffer.h"
+#include "webrtc/common_audio/signal_processing/include/signal_processing_library.h"
+#include "webrtc/modules/audio_processing/aecm/aecm_core.h"
 
 #define BUF_SIZE_FRAMES 50 // buffer size (frames)
 // Maximum length of resampled signal. Must be an integer multiple of frames
@@ -31,7 +25,7 @@ extern HANDLE logFile;
 // The factor of 2 handles wb, and the + 1 is as a safety margin
 #define MAX_RESAMP_LEN (5 * FRAME_LEN)
 
-static const int kBufSizeSamp = BUF_SIZE_FRAMES * FRAME_LEN; // buffer size (samples)
+static const size_t kBufSizeSamp = BUF_SIZE_FRAMES * FRAME_LEN; // buffer size (samples)
 static const int kSampMsNb = 8; // samples per ms in nb
 // Target suppression levels for nlp modes
 // log{0.001, 0.00001, 0.00000001}
@@ -63,7 +57,7 @@ typedef struct
     int delayChange;
     short lastDelayDiff;
 
-    WebRtc_Word16 echoMode;
+    int16_t echoMode;
 
 #ifdef AEC_DEBUG
     FILE *bufFile;
@@ -72,47 +66,37 @@ typedef struct
     FILE *postCompFile;
 #endif // AEC_DEBUG
     // Structures
-    void *farendBuf;
+    RingBuffer *farendBuf;
 
     int lastError;
 
-    AecmCore_t *aecmCore;
-} aecmob_t;
+    AecmCore* aecmCore;
+} AecMobile;
 
 // Estimates delay to set the position of the farend buffer read pointer
 // (controlled by knownDelay)
-static int WebRtcAecm_EstBufDelay(aecmob_t *aecmInst, short msInSndCardBuf);
+static int WebRtcAecm_EstBufDelay(AecMobile* aecmInst, short msInSndCardBuf);
 
 // Stuffs the farend buffer if the estimated delay is too large
-static int WebRtcAecm_DelayComp(aecmob_t *aecmInst);
+static int WebRtcAecm_DelayComp(AecMobile* aecmInst);
 
-WebRtc_Word32 WebRtcAecm_Create(void **aecmInst)
-{
-    aecmob_t *aecm;
-    if (aecmInst == NULL)
-    {
-        return -1;
+void* WebRtcAecm_Create() {
+    AecMobile* aecm = malloc(sizeof(AecMobile));
+
+    WebRtcSpl_Init();
+
+    aecm->aecmCore = WebRtcAecm_CreateCore();
+    if (!aecm->aecmCore) {
+        WebRtcAecm_Free(aecm);
+        return NULL;
     }
 
-    aecm = malloc(sizeof(aecmob_t));
-    *aecmInst = aecm;
-    if (aecm == NULL)
-    {
-        return -1;
-    }
-
-    if (WebRtcAecm_CreateCore(&aecm->aecmCore) == -1)
+    aecm->farendBuf = WebRtc_CreateBuffer(kBufSizeSamp,
+                                          sizeof(int16_t));
+    if (!aecm->farendBuf)
     {
         WebRtcAecm_Free(aecm);
-        aecm = NULL;
-        return -1;
-    }
-
-    if (WebRtcApm_CreateBuffer(&aecm->farendBuf, kBufSizeSamp) == -1)
-    {
-        WebRtcAecm_Free(aecm);
-        aecm = NULL;
-        return -1;
+        return NULL;
     }
 
     aecm->initFlag = 0;
@@ -129,16 +113,14 @@ WebRtc_Word32 WebRtcAecm_Create(void **aecmInst)
     aecm->preCompFile = fopen("preComp.pcm", "wb");
     aecm->postCompFile = fopen("postComp.pcm", "wb");
 #endif // AEC_DEBUG
-    return 0;
+    return aecm;
 }
 
-WebRtc_Word32 WebRtcAecm_Free(void *aecmInst)
-{
-    aecmob_t *aecm = aecmInst;
+void WebRtcAecm_Free(void* aecmInst) {
+  AecMobile* aecm = aecmInst;
 
-    if (aecm == NULL)
-    {
-        return -1;
+    if (aecm == NULL) {
+      return;
     }
 
 #ifdef AEC_DEBUG
@@ -153,15 +135,13 @@ WebRtc_Word32 WebRtcAecm_Free(void *aecmInst)
     fclose(aecm->postCompFile);
 #endif // AEC_DEBUG
     WebRtcAecm_FreeCore(aecm->aecmCore);
-    WebRtcApm_FreeBuffer(aecm->farendBuf);
+    WebRtc_FreeBuffer(aecm->farendBuf);
     free(aecm);
-
-    return 0;
 }
 
-WebRtc_Word32 WebRtcAecm_Init(void *aecmInst, WebRtc_Word32 sampFreq)
+int32_t WebRtcAecm_Init(void *aecmInst, int32_t sampFreq)
 {
-    aecmob_t *aecm = aecmInst;
+  AecMobile* aecm = aecmInst;
     AecmConfig aecConfig;
 
     if (aecm == NULL)
@@ -184,11 +164,7 @@ WebRtc_Word32 WebRtcAecm_Init(void *aecmInst, WebRtc_Word32 sampFreq)
     }
 
     // Initialize farend buffer
-    if (WebRtcApm_InitBuffer(aecm->farendBuf) == -1)
-    {
-        aecm->lastError = AECM_UNSPECIFIED_ERROR;
-        return -1;
-    }
+    WebRtc_InitBuffer(aecm->farendBuf);
 
     aecm->initFlag = kInitCheck; // indicates that initialization has been done
 
@@ -222,11 +198,11 @@ WebRtc_Word32 WebRtcAecm_Init(void *aecmInst, WebRtc_Word32 sampFreq)
     return 0;
 }
 
-WebRtc_Word32 WebRtcAecm_BufferFarend(void *aecmInst, const WebRtc_Word16 *farend,
-                                      WebRtc_Word16 nrOfSamples)
+int32_t WebRtcAecm_BufferFarend(void *aecmInst, const int16_t *farend,
+                                size_t nrOfSamples)
 {
-    aecmob_t *aecm = aecmInst;
-    WebRtc_Word32 retVal = 0;
+  AecMobile* aecm = aecmInst;
+    int32_t retVal = 0;
 
     if (aecm == NULL)
     {
@@ -257,36 +233,23 @@ WebRtc_Word32 WebRtcAecm_BufferFarend(void *aecmInst, const WebRtc_Word16 *faren
         WebRtcAecm_DelayComp(aecm);
     }
 
-    WebRtcApm_WriteBuffer(aecm->farendBuf, farend, nrOfSamples);
+    WebRtc_WriteBuffer(aecm->farendBuf, farend, nrOfSamples);
 
     return retVal;
 }
 
-WebRtc_Word32 WebRtcAecm_Process(void *aecmInst, const WebRtc_Word16 *nearendNoisy,
-                                 const WebRtc_Word16 *nearendClean, WebRtc_Word16 *out,
-                                 WebRtc_Word16 nrOfSamples, WebRtc_Word16 msInSndCardBuf)
+int32_t WebRtcAecm_Process(void *aecmInst, const int16_t *nearendNoisy,
+                           const int16_t *nearendClean, int16_t *out,
+                           size_t nrOfSamples, int16_t msInSndCardBuf)
 {
-    aecmob_t *aecm = aecmInst;
-    WebRtc_Word32 retVal = 0;
-    short i;
-    short farend[FRAME_LEN];
+  AecMobile* aecm = aecmInst;
+    int32_t retVal = 0;
+    size_t i;
     short nmbrOfFilledBuffers;
-    short nBlocks10ms;
-    short nFrames;
+    size_t nBlocks10ms;
+    size_t nFrames;
 #ifdef AEC_DEBUG
     short msInAECBuf;
-#endif
-
-#ifdef ARM_WINM_LOG
-    __int64 freq, start, end, diff;
-    unsigned int milliseconds;
-    DWORD temp;
-#elif defined MAC_IPHONE_PRINT
-    //       double endtime = 0, starttime = 0;
-    struct timeval starttime;
-    struct timeval endtime;
-    static long int timeused = 0;
-    static int timecount = 0;
 #endif
 
     if (aecm == NULL)
@@ -339,13 +302,17 @@ WebRtc_Word32 WebRtcAecm_Process(void *aecmInst, const WebRtc_Word16 *nearendNoi
     {
         if (nearendClean == NULL)
         {
-            memcpy(out, nearendNoisy, sizeof(short) * nrOfSamples);
-        } else
+            if (out != nearendNoisy)
+            {
+                memcpy(out, nearendNoisy, sizeof(short) * nrOfSamples);
+            }
+        } else if (out != nearendClean)
         {
             memcpy(out, nearendClean, sizeof(short) * nrOfSamples);
         }
 
-        nmbrOfFilledBuffers = WebRtcApm_get_buffer_size(aecm->farendBuf) / FRAME_LEN;
+        nmbrOfFilledBuffers =
+            (short) WebRtc_available_read(aecm->farendBuf) / FRAME_LEN;
         // The AECM is in the start up mode
         // AECM is disabled until the soundcard buffer and farend buffers are OK
 
@@ -407,10 +374,9 @@ WebRtc_Word32 WebRtcAecm_Process(void *aecmInst, const WebRtc_Word16 *nearendNoi
                 aecm->ECstartup = 0; // Enable the AECM
             } else if (nmbrOfFilledBuffers > aecm->bufSizeStart)
             {
-                WebRtcApm_FlushBuffer(
-                                       aecm->farendBuf,
-                                       WebRtcApm_get_buffer_size(aecm->farendBuf)
-                                               - aecm->bufSizeStart * FRAME_LEN);
+                WebRtc_MoveReadPtr(aecm->farendBuf,
+                                   (int) WebRtc_available_read(aecm->farendBuf)
+                                   - (int) aecm->bufSizeStart * FRAME_LEN);
                 aecm->ECstartup = 0;
             }
         }
@@ -422,20 +388,27 @@ WebRtc_Word32 WebRtcAecm_Process(void *aecmInst, const WebRtc_Word16 *nearendNoi
         // Note only 1 block supported for nb and 2 blocks for wb
         for (i = 0; i < nFrames; i++)
         {
-            nmbrOfFilledBuffers = WebRtcApm_get_buffer_size(aecm->farendBuf) / FRAME_LEN;
+            int16_t farend[FRAME_LEN];
+            const int16_t* farend_ptr = NULL;
+
+            nmbrOfFilledBuffers =
+                (short) WebRtc_available_read(aecm->farendBuf) / FRAME_LEN;
 
             // Check that there is data in the far end buffer
             if (nmbrOfFilledBuffers > 0)
             {
                 // Get the next 80 samples from the farend buffer
-                WebRtcApm_ReadBuffer(aecm->farendBuf, farend, FRAME_LEN);
+                WebRtc_ReadBuffer(aecm->farendBuf, (void**) &farend_ptr, farend,
+                                  FRAME_LEN);
 
                 // Always store the last frame for use when we run out of data
-                memcpy(&(aecm->farendOld[i][0]), farend, FRAME_LEN * sizeof(short));
+                memcpy(&(aecm->farendOld[i][0]), farend_ptr,
+                       FRAME_LEN * sizeof(short));
             } else
             {
                 // We have no data so we use the last played frame
                 memcpy(farend, &(aecm->farendOld[i][0]), FRAME_LEN * sizeof(short));
+                farend_ptr = farend;
             }
 
             // Call buffer delay estimator when all data is extracted,
@@ -445,77 +418,23 @@ WebRtc_Word32 WebRtcAecm_Process(void *aecmInst, const WebRtc_Word16 *nearendNoi
                 WebRtcAecm_EstBufDelay(aecm, aecm->msInSndCardBuf);
             }
 
-#ifdef ARM_WINM_LOG
-            // measure tick start
-            QueryPerformanceFrequency((LARGE_INTEGER*)&freq);
-            QueryPerformanceCounter((LARGE_INTEGER*)&start);
-#elif defined MAC_IPHONE_PRINT
-            //            starttime = clock()/(double)CLOCKS_PER_SEC;
-            gettimeofday(&starttime, NULL);
-#endif
             // Call the AECM
             /*WebRtcAecm_ProcessFrame(aecm->aecmCore, farend, &nearend[FRAME_LEN * i],
              &out[FRAME_LEN * i], aecm->knownDelay);*/
-            if (nearendClean == NULL)
-            {
-                if (WebRtcAecm_ProcessFrame(aecm->aecmCore,
-                                            farend,
-                                            &nearendNoisy[FRAME_LEN * i],
-                                            NULL,
-                                            &out[FRAME_LEN * i]) == -1)
-                {
-                    return -1;
-                }
-            } else
-            {
-                if (WebRtcAecm_ProcessFrame(aecm->aecmCore,
-                                            farend,
-                                            &nearendNoisy[FRAME_LEN * i],
-                                            &nearendClean[FRAME_LEN * i],
-                                            &out[FRAME_LEN * i]) == -1)
-                {
-                    return -1;
-                }
-            }
-
-#ifdef ARM_WINM_LOG
-
-            // measure tick end
-            QueryPerformanceCounter((LARGE_INTEGER*)&end);
-
-            if(end > start)
-            {
-                diff = ((end - start) * 1000) / (freq/1000);
-                milliseconds = (unsigned int)(diff & 0xffffffff);
-                WriteFile (logFile, &milliseconds, sizeof(unsigned int), &temp, NULL);
-            }
-#elif defined MAC_IPHONE_PRINT
-            //            endtime = clock()/(double)CLOCKS_PER_SEC;
-            //            printf("%f\n", endtime - starttime);
-
-            gettimeofday(&endtime, NULL);
-
-            if( endtime.tv_usec > starttime.tv_usec)
-            {
-                timeused += endtime.tv_usec - starttime.tv_usec;
-            } else
-            {
-                timeused += endtime.tv_usec + 1000000 - starttime.tv_usec;
-            }
-
-            if(++timecount == 1000)
-            {
-                timecount = 0;
-                printf("AEC: %ld\n", timeused);
-                timeused = 0;
-            }
-#endif
-
+            if (WebRtcAecm_ProcessFrame(aecm->aecmCore,
+                                        farend_ptr,
+                                        &nearendNoisy[FRAME_LEN * i],
+                                        (nearendClean
+                                         ? &nearendClean[FRAME_LEN * i]
+                                         : NULL),
+                                        &out[FRAME_LEN * i]) == -1)
+                return -1;
         }
     }
 
 #ifdef AEC_DEBUG
-    msInAECBuf = WebRtcApm_get_buffer_size(aecm->farendBuf) / (kSampMsNb*aecm->aecmCore->mult);
+    msInAECBuf = (short) WebRtc_available_read(aecm->farendBuf) /
+        (kSampMsNb * aecm->aecmCore->mult);
     fwrite(&msInAECBuf, 2, 1, aecm->bufFile);
     fwrite(&(aecm->knownDelay), sizeof(aecm->knownDelay), 1, aecm->delayFile);
 #endif
@@ -523,9 +442,9 @@ WebRtc_Word32 WebRtcAecm_Process(void *aecmInst, const WebRtc_Word16 *nearendNoi
     return retVal;
 }
 
-WebRtc_Word32 WebRtcAecm_set_config(void *aecmInst, AecmConfig config)
+int32_t WebRtcAecm_set_config(void *aecmInst, AecmConfig config)
 {
-    aecmob_t *aecm = aecmInst;
+  AecMobile* aecm = aecmInst;
 
     if (aecm == NULL)
     {
@@ -605,9 +524,9 @@ WebRtc_Word32 WebRtcAecm_set_config(void *aecmInst, AecmConfig config)
     return 0;
 }
 
-WebRtc_Word32 WebRtcAecm_get_config(void *aecmInst, AecmConfig *config)
+int32_t WebRtcAecm_get_config(void *aecmInst, AecmConfig *config)
 {
-    aecmob_t *aecm = aecmInst;
+  AecMobile* aecm = aecmInst;
 
     if (aecm == NULL)
     {
@@ -632,17 +551,19 @@ WebRtc_Word32 WebRtcAecm_get_config(void *aecmInst, AecmConfig *config)
     return 0;
 }
 
-WebRtc_Word32 WebRtcAecm_InitEchoPath(void* aecmInst,
-                                      const void* echo_path,
-                                      size_t size_bytes)
+int32_t WebRtcAecm_InitEchoPath(void* aecmInst,
+                                const void* echo_path,
+                                size_t size_bytes)
 {
-    aecmob_t *aecm = aecmInst;
-    const WebRtc_Word16* echo_path_ptr = echo_path;
+  AecMobile* aecm = aecmInst;
+    const int16_t* echo_path_ptr = echo_path;
 
-    if ((aecm == NULL) || (echo_path == NULL))
-    {
-        aecm->lastError = AECM_NULL_POINTER_ERROR;
-        return -1;
+    if (aecmInst == NULL) {
+      return -1;
+    }
+    if (echo_path == NULL) {
+      aecm->lastError = AECM_NULL_POINTER_ERROR;
+      return -1;
     }
     if (size_bytes != WebRtcAecm_echo_path_size_bytes())
     {
@@ -661,17 +582,19 @@ WebRtc_Word32 WebRtcAecm_InitEchoPath(void* aecmInst,
     return 0;
 }
 
-WebRtc_Word32 WebRtcAecm_GetEchoPath(void* aecmInst,
-                                     void* echo_path,
-                                     size_t size_bytes)
+int32_t WebRtcAecm_GetEchoPath(void* aecmInst,
+                               void* echo_path,
+                               size_t size_bytes)
 {
-    aecmob_t *aecm = aecmInst;
-    WebRtc_Word16* echo_path_ptr = echo_path;
+  AecMobile* aecm = aecmInst;
+    int16_t* echo_path_ptr = echo_path;
 
-    if ((aecm == NULL) || (echo_path == NULL))
-    {
-        aecm->lastError = AECM_NULL_POINTER_ERROR;
-        return -1;
+    if (aecmInst == NULL) {
+      return -1;
+    }
+    if (echo_path == NULL) {
+      aecm->lastError = AECM_NULL_POINTER_ERROR;
+      return -1;
     }
     if (size_bytes != WebRtcAecm_echo_path_size_bytes())
     {
@@ -691,31 +614,12 @@ WebRtc_Word32 WebRtcAecm_GetEchoPath(void* aecmInst,
 
 size_t WebRtcAecm_echo_path_size_bytes()
 {
-    return (PART_LEN1 * sizeof(WebRtc_Word16));
+    return (PART_LEN1 * sizeof(int16_t));
 }
 
-WebRtc_Word32 WebRtcAecm_get_version(WebRtc_Word8 *versionStr, WebRtc_Word16 len)
+int32_t WebRtcAecm_get_error_code(void *aecmInst)
 {
-    const char version[] = "AECM 1.2.0";
-    const short versionLen = (short)strlen(version) + 1; // +1 for null-termination
-
-    if (versionStr == NULL)
-    {
-        return -1;
-    }
-
-    if (versionLen > len)
-    {
-        return -1;
-    }
-
-    strncpy(versionStr, version, versionLen);
-    return 0;
-}
-
-WebRtc_Word32 WebRtcAecm_get_error_code(void *aecmInst)
-{
-    aecmob_t *aecm = aecmInst;
+  AecMobile* aecm = aecmInst;
 
     if (aecm == NULL)
     {
@@ -725,19 +629,18 @@ WebRtc_Word32 WebRtcAecm_get_error_code(void *aecmInst)
     return aecm->lastError;
 }
 
-static int WebRtcAecm_EstBufDelay(aecmob_t *aecm, short msInSndCardBuf)
-{
-    short delayNew, nSampFar, nSampSndCard;
+static int WebRtcAecm_EstBufDelay(AecMobile* aecm, short msInSndCardBuf) {
+    short delayNew, nSampSndCard;
+    short nSampFar = (short) WebRtc_available_read(aecm->farendBuf);
     short diff;
 
-    nSampFar = WebRtcApm_get_buffer_size(aecm->farendBuf);
     nSampSndCard = msInSndCardBuf * kSampMsNb * aecm->aecmCore->mult;
 
     delayNew = nSampSndCard - nSampFar;
 
     if (delayNew < FRAME_LEN)
     {
-        WebRtcApm_FlushBuffer(aecm->farendBuf, FRAME_LEN);
+        WebRtc_MoveReadPtr(aecm->farendBuf, FRAME_LEN);
         delayNew += FRAME_LEN;
     }
 
@@ -775,12 +678,11 @@ static int WebRtcAecm_EstBufDelay(aecmob_t *aecm, short msInSndCardBuf)
     return 0;
 }
 
-static int WebRtcAecm_DelayComp(aecmob_t *aecm)
-{
-    int nSampFar, nSampSndCard, delayNew, nSampAdd;
+static int WebRtcAecm_DelayComp(AecMobile* aecm) {
+    int nSampFar = (int) WebRtc_available_read(aecm->farendBuf);
+    int nSampSndCard, delayNew, nSampAdd;
     const int maxStuffSamp = 10 * FRAME_LEN;
 
-    nSampFar = WebRtcApm_get_buffer_size(aecm->farendBuf);
     nSampSndCard = aecm->msInSndCardBuf * kSampMsNb * aecm->aecmCore->mult;
     delayNew = nSampSndCard - nSampFar;
 
@@ -792,7 +694,7 @@ static int WebRtcAecm_DelayComp(aecmob_t *aecm)
                 FRAME_LEN));
         nSampAdd = WEBRTC_SPL_MIN(nSampAdd, maxStuffSamp);
 
-        WebRtcApm_StuffBuffer(aecm->farendBuf, nSampAdd);
+        WebRtc_MoveReadPtr(aecm->farendBuf, -nSampAdd);
         aecm->delayChange = 1; // the delay needs to be updated
     }
 

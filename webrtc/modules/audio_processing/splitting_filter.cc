@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2011 The WebRTC project authors. All Rights Reserved.
+ *  Copyright (c) 2014 The WebRTC project authors. All Rights Reserved.
  *
  *  Use of this source code is governed by a BSD-style license
  *  that can be found in the LICENSE file in the root of the source
@@ -8,26 +8,102 @@
  *  be found in the AUTHORS file in the root of the source tree.
  */
 
-#include "splitting_filter.h"
-#include "signal_processing_library.h"
+#include "webrtc/modules/audio_processing/splitting_filter.h"
+
+#include "webrtc/base/checks.h"
+#include "webrtc/common_audio/signal_processing/include/signal_processing_library.h"
+#include "webrtc/common_audio/channel_buffer.h"
 
 namespace webrtc {
 
-void SplittingFilterAnalysis(const WebRtc_Word16* in_data,
-                             WebRtc_Word16* low_band,
-                             WebRtc_Word16* high_band,
-                             WebRtc_Word32* filter_state1,
-                             WebRtc_Word32* filter_state2)
-{
-    WebRtcSpl_AnalysisQMF(in_data, low_band, high_band, filter_state1, filter_state2);
+SplittingFilter::SplittingFilter(int num_channels,
+                                 size_t num_bands,
+                                 size_t num_frames)
+    : num_bands_(num_bands) {
+  RTC_CHECK(num_bands_ == 2 || num_bands_ == 3);
+  if (num_bands_ == 2) {
+    two_bands_states_.resize(num_channels);
+  } else if (num_bands_ == 3) {
+    for (int i = 0; i < num_channels; ++i) {
+      three_band_filter_banks_.push_back(new ThreeBandFilterBank(num_frames));
+    }
+  }
 }
 
-void SplittingFilterSynthesis(const WebRtc_Word16* low_band,
-                              const WebRtc_Word16* high_band,
-                              WebRtc_Word16* out_data,
-                              WebRtc_Word32* filt_state1,
-                              WebRtc_Word32* filt_state2)
-{
-    WebRtcSpl_SynthesisQMF(low_band, high_band, out_data, filt_state1, filt_state2);
+void SplittingFilter::Analysis(const IFChannelBuffer* data,
+                               IFChannelBuffer* bands) {
+  RTC_DCHECK_EQ(num_bands_, bands->num_bands());
+  RTC_DCHECK_EQ(data->num_channels(), bands->num_channels());
+  RTC_DCHECK_EQ(data->num_frames(),
+                bands->num_frames_per_band() * bands->num_bands());
+  if (bands->num_bands() == 2) {
+    TwoBandsAnalysis(data, bands);
+  } else if (bands->num_bands() == 3) {
+    ThreeBandsAnalysis(data, bands);
+  }
 }
+
+void SplittingFilter::Synthesis(const IFChannelBuffer* bands,
+                                IFChannelBuffer* data) {
+  RTC_DCHECK_EQ(num_bands_, bands->num_bands());
+  RTC_DCHECK_EQ(data->num_channels(), bands->num_channels());
+  RTC_DCHECK_EQ(data->num_frames(),
+                bands->num_frames_per_band() * bands->num_bands());
+  if (bands->num_bands() == 2) {
+    TwoBandsSynthesis(bands, data);
+  } else if (bands->num_bands() == 3) {
+    ThreeBandsSynthesis(bands, data);
+  }
+}
+
+void SplittingFilter::TwoBandsAnalysis(const IFChannelBuffer* data,
+                                       IFChannelBuffer* bands) {
+  RTC_DCHECK_EQ(static_cast<int>(two_bands_states_.size()),
+                data->num_channels());
+  for (size_t i = 0; i < two_bands_states_.size(); ++i) {
+    WebRtcSpl_AnalysisQMF(data->ibuf_const()->channels()[i],
+                          data->num_frames(),
+                          bands->ibuf()->channels(0)[i],
+                          bands->ibuf()->channels(1)[i],
+                          two_bands_states_[i].analysis_state1,
+                          two_bands_states_[i].analysis_state2);
+  }
+}
+
+void SplittingFilter::TwoBandsSynthesis(const IFChannelBuffer* bands,
+                                        IFChannelBuffer* data) {
+  RTC_DCHECK_EQ(static_cast<int>(two_bands_states_.size()),
+                data->num_channels());
+  for (size_t i = 0; i < two_bands_states_.size(); ++i) {
+    WebRtcSpl_SynthesisQMF(bands->ibuf_const()->channels(0)[i],
+                           bands->ibuf_const()->channels(1)[i],
+                           bands->num_frames_per_band(),
+                           data->ibuf()->channels()[i],
+                           two_bands_states_[i].synthesis_state1,
+                           two_bands_states_[i].synthesis_state2);
+  }
+}
+
+void SplittingFilter::ThreeBandsAnalysis(const IFChannelBuffer* data,
+                                         IFChannelBuffer* bands) {
+  RTC_DCHECK_EQ(static_cast<int>(three_band_filter_banks_.size()),
+                data->num_channels());
+  for (size_t i = 0; i < three_band_filter_banks_.size(); ++i) {
+    three_band_filter_banks_[i]->Analysis(data->fbuf_const()->channels()[i],
+                                          data->num_frames(),
+                                          bands->fbuf()->bands(i));
+  }
+}
+
+void SplittingFilter::ThreeBandsSynthesis(const IFChannelBuffer* bands,
+                                          IFChannelBuffer* data) {
+  RTC_DCHECK_EQ(static_cast<int>(three_band_filter_banks_.size()),
+                data->num_channels());
+  for (size_t i = 0; i < three_band_filter_banks_.size(); ++i) {
+    three_band_filter_banks_[i]->Synthesis(bands->fbuf_const()->bands(i),
+                                           bands->num_frames_per_band(),
+                                           data->fbuf()->channels()[i]);
+  }
+}
+
 }  // namespace webrtc

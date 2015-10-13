@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2011 The WebRTC project authors. All Rights Reserved.
+ *  Copyright (c) 2012 The WebRTC project authors. All Rights Reserved.
  *
  *  Use of this source code is governed by a BSD-style license
  *  that can be found in the LICENSE file in the root of the source
@@ -8,69 +8,79 @@
  *  be found in the AUTHORS file in the root of the source tree.
  */
 
-#ifndef WEBRTC_MODULES_AUDIO_PROCESSING_MAIN_SOURCE_ECHO_CANCELLATION_IMPL_H_
-#define WEBRTC_MODULES_AUDIO_PROCESSING_MAIN_SOURCE_ECHO_CANCELLATION_IMPL_H_
+#ifndef WEBRTC_MODULES_AUDIO_PROCESSING_ECHO_CANCELLATION_IMPL_H_
+#define WEBRTC_MODULES_AUDIO_PROCESSING_ECHO_CANCELLATION_IMPL_H_
 
-#include "audio_processing.h"
-#include "processing_component.h"
+#include "webrtc/modules/audio_processing/include/audio_processing.h"
+#include "webrtc/modules/audio_processing/processing_component.h"
 
 namespace webrtc {
-class AudioProcessingImpl;
+
 class AudioBuffer;
+class CriticalSectionWrapper;
 
 class EchoCancellationImpl : public EchoCancellation,
                              public ProcessingComponent {
  public:
-  explicit EchoCancellationImpl(const AudioProcessingImpl* apm);
+  EchoCancellationImpl(const AudioProcessing* apm,
+                       CriticalSectionWrapper* crit);
   virtual ~EchoCancellationImpl();
 
   int ProcessRenderAudio(const AudioBuffer* audio);
   int ProcessCaptureAudio(AudioBuffer* audio);
 
   // EchoCancellation implementation.
-  virtual bool is_enabled() const;
-  virtual int device_sample_rate_hz() const;
-  virtual int stream_drift_samples() const;
+  bool is_enabled() const override;
+  int stream_drift_samples() const override;
+  SuppressionLevel suppression_level() const override;
+  bool is_drift_compensation_enabled() const override;
 
   // ProcessingComponent implementation.
-  virtual int Initialize();
-  virtual int get_version(char* version, int version_len_bytes) const;
+  int Initialize() override;
+  void SetExtraOptions(const Config& config) override;
+
+  bool is_delay_agnostic_enabled() const;
+  bool is_extended_filter_enabled() const;
 
  private:
   // EchoCancellation implementation.
-  virtual int Enable(bool enable);
-  virtual int enable_drift_compensation(bool enable);
-  virtual bool is_drift_compensation_enabled() const;
-  virtual int set_device_sample_rate_hz(int rate);
-  virtual int set_stream_drift_samples(int drift);
-  virtual int set_suppression_level(SuppressionLevel level);
-  virtual SuppressionLevel suppression_level() const;
-  virtual int enable_metrics(bool enable);
-  virtual bool are_metrics_enabled() const;
-  virtual bool stream_has_echo() const;
-  virtual int GetMetrics(Metrics* metrics);
-  virtual int enable_delay_logging(bool enable);
-  virtual bool is_delay_logging_enabled() const;
-  virtual int GetDelayMetrics(int* median, int* std);
+  int Enable(bool enable) override;
+  int enable_drift_compensation(bool enable) override;
+  void set_stream_drift_samples(int drift) override;
+  int set_suppression_level(SuppressionLevel level) override;
+  int enable_metrics(bool enable) override;
+  bool are_metrics_enabled() const override;
+  bool stream_has_echo() const override;
+  int GetMetrics(Metrics* metrics) override;
+  int enable_delay_logging(bool enable) override;
+  bool is_delay_logging_enabled() const override;
+  int GetDelayMetrics(int* median, int* std) override;
+  int GetDelayMetrics(int* median,
+                      int* std,
+                      float* fraction_poor_delays) override;
+  struct AecCore* aec_core() const override;
 
   // ProcessingComponent implementation.
-  virtual void* CreateHandle() const;
-  virtual int InitializeHandle(void* handle) const;
-  virtual int ConfigureHandle(void* handle) const;
-  virtual int DestroyHandle(void* handle) const;
-  virtual int num_handles_required() const;
-  virtual int GetHandleError(void* handle) const;
+  void* CreateHandle() const override;
+  int InitializeHandle(void* handle) const override;
+  int ConfigureHandle(void* handle) const override;
+  void DestroyHandle(void* handle) const override;
+  int num_handles_required() const override;
+  int GetHandleError(void* handle) const override;
 
-  const AudioProcessingImpl* apm_;
+  const AudioProcessing* apm_;
+  CriticalSectionWrapper* crit_;
   bool drift_compensation_enabled_;
   bool metrics_enabled_;
   SuppressionLevel suppression_level_;
-  int device_sample_rate_hz_;
   int stream_drift_samples_;
   bool was_stream_drift_set_;
   bool stream_has_echo_;
   bool delay_logging_enabled_;
+  bool extended_filter_enabled_;
+  bool delay_agnostic_enabled_;
 };
+
 }  // namespace webrtc
 
-#endif  // WEBRTC_MODULES_AUDIO_PROCESSING_MAIN_SOURCE_ECHO_CANCELLATION_IMPL_H_
+#endif  // WEBRTC_MODULES_AUDIO_PROCESSING_ECHO_CANCELLATION_IMPL_H_

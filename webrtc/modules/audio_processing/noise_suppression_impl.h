@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2011 The WebRTC project authors. All Rights Reserved.
+ *  Copyright (c) 2012 The WebRTC project authors. All Rights Reserved.
  *
  *  Use of this source code is governed by a BSD-style license
  *  that can be found in the LICENSE file in the root of the source
@@ -8,47 +8,50 @@
  *  be found in the AUTHORS file in the root of the source tree.
  */
 
-#ifndef WEBRTC_MODULES_AUDIO_PROCESSING_MAIN_SOURCE_NOISE_SUPPRESSION_IMPL_H_
-#define WEBRTC_MODULES_AUDIO_PROCESSING_MAIN_SOURCE_NOISE_SUPPRESSION_IMPL_H_
+#ifndef WEBRTC_MODULES_AUDIO_PROCESSING_NOISE_SUPPRESSION_IMPL_H_
+#define WEBRTC_MODULES_AUDIO_PROCESSING_NOISE_SUPPRESSION_IMPL_H_
 
-#include "audio_processing.h"
-#include "processing_component.h"
+#include "webrtc/modules/audio_processing/include/audio_processing.h"
+#include "webrtc/modules/audio_processing/processing_component.h"
 
 namespace webrtc {
-class AudioProcessingImpl;
+
 class AudioBuffer;
+class CriticalSectionWrapper;
 
 class NoiseSuppressionImpl : public NoiseSuppression,
                              public ProcessingComponent {
  public:
-  explicit NoiseSuppressionImpl(const AudioProcessingImpl* apm);
+  NoiseSuppressionImpl(const AudioProcessing* apm,
+                       CriticalSectionWrapper* crit);
   virtual ~NoiseSuppressionImpl();
 
+  int AnalyzeCaptureAudio(AudioBuffer* audio);
   int ProcessCaptureAudio(AudioBuffer* audio);
 
   // NoiseSuppression implementation.
-  virtual bool is_enabled() const;
-
-  // ProcessingComponent implementation.
-  virtual int get_version(char* version, int version_len_bytes) const;
+  bool is_enabled() const override;
+  float speech_probability() const override;
+  Level level() const override;
 
  private:
   // NoiseSuppression implementation.
-  virtual int Enable(bool enable);
-  virtual int set_level(Level level);
-  virtual Level level() const;
+  int Enable(bool enable) override;
+  int set_level(Level level) override;
 
   // ProcessingComponent implementation.
-  virtual void* CreateHandle() const;
-  virtual int InitializeHandle(void* handle) const;
-  virtual int ConfigureHandle(void* handle) const;
-  virtual int DestroyHandle(void* handle) const;
-  virtual int num_handles_required() const;
-  virtual int GetHandleError(void* handle) const;
+  void* CreateHandle() const override;
+  int InitializeHandle(void* handle) const override;
+  int ConfigureHandle(void* handle) const override;
+  void DestroyHandle(void* handle) const override;
+  int num_handles_required() const override;
+  int GetHandleError(void* handle) const override;
 
-  const AudioProcessingImpl* apm_;
+  const AudioProcessing* apm_;
+  CriticalSectionWrapper* crit_;
   Level level_;
 };
+
 }  // namespace webrtc
 
-#endif  // WEBRTC_MODULES_AUDIO_PROCESSING_MAIN_SOURCE_NOISE_SUPPRESSION_IMPL_H_
+#endif  // WEBRTC_MODULES_AUDIO_PROCESSING_NOISE_SUPPRESSION_IMPL_H_

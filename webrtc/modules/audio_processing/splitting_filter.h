@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2011 The WebRTC project authors. All Rights Reserved.
+ *  Copyright (c) 2014 The WebRTC project authors. All Rights Reserved.
  *
  *  Use of this source code is governed by a BSD-style license
  *  that can be found in the LICENSE file in the root of the source
@@ -8,56 +8,61 @@
  *  be found in the AUTHORS file in the root of the source tree.
  */
 
-#ifndef WEBRTC_MODULES_AUDIO_PROCESSING_MAIN_SOURCE_SPLITTING_FILTER_H_
-#define WEBRTC_MODULES_AUDIO_PROCESSING_MAIN_SOURCE_SPLITTING_FILTER_H_
+#ifndef WEBRTC_MODULES_AUDIO_PROCESSING_SPLITTING_FILTER_H_
+#define WEBRTC_MODULES_AUDIO_PROCESSING_SPLITTING_FILTER_H_
 
-#include "typedefs.h"
-#include "signal_processing_library.h"
+#include <cstring>
+#include <vector>
+
+#include "webrtc/modules/audio_processing/three_band_filter_bank.h"
+#include "webrtc/system_wrappers/interface/scoped_vector.h"
 
 namespace webrtc {
-/*
- * SplittingFilterbank_analysisQMF(...)
- *
- * Splits a super-wb signal into two subbands: 0-8 kHz and 8-16 kHz.
- *
- * Input:
- *    - in_data  : super-wb audio signal
- *
- * Input & Output:
- *    - filt_state1: Filter state for first all-pass filter
- *    - filt_state2: Filter state for second all-pass filter
- *
- * Output:
- *    - low_band : The signal from the 0-4 kHz band
- *    - high_band  : The signal from the 4-8 kHz band
- */
-void SplittingFilterAnalysis(const WebRtc_Word16* in_data,
-                             WebRtc_Word16* low_band,
-                             WebRtc_Word16* high_band,
-                             WebRtc_Word32* filt_state1,
-                             WebRtc_Word32* filt_state2);
 
-/*
- * SplittingFilterbank_synthesisQMF(...)
- *
- * Combines the two subbands (0-8 and 8-16 kHz) into a super-wb signal.
- *
- * Input:
- *    - low_band : The signal with the 0-8 kHz band
- *    - high_band  : The signal with the 8-16 kHz band
- *
- * Input & Output:
- *    - filt_state1: Filter state for first all-pass filter
- *    - filt_state2: Filter state for second all-pass filter
- *
- * Output:
- *    - out_data : super-wb speech signal
- */
-void SplittingFilterSynthesis(const WebRtc_Word16* low_band,
-                              const WebRtc_Word16* high_band,
-                              WebRtc_Word16* out_data,
-                              WebRtc_Word32* filt_state1,
-                              WebRtc_Word32* filt_state2);
+class IFChannelBuffer;
+
+struct TwoBandsStates {
+  TwoBandsStates() {
+    memset(analysis_state1, 0, sizeof(analysis_state1));
+    memset(analysis_state2, 0, sizeof(analysis_state2));
+    memset(synthesis_state1, 0, sizeof(synthesis_state1));
+    memset(synthesis_state2, 0, sizeof(synthesis_state2));
+  }
+
+  static const int kStateSize = 6;
+  int analysis_state1[kStateSize];
+  int analysis_state2[kStateSize];
+  int synthesis_state1[kStateSize];
+  int synthesis_state2[kStateSize];
+};
+
+// Splitting filter which is able to split into and merge from 2 or 3 frequency
+// bands. The number of channels needs to be provided at construction time.
+//
+// For each block, Analysis() is called to split into bands and then Synthesis()
+// to merge these bands again. The input and output signals are contained in
+// IFChannelBuffers and for the different bands an array of IFChannelBuffers is
+// used.
+class SplittingFilter {
+ public:
+  SplittingFilter(int num_channels, size_t num_bands, size_t num_frames);
+
+  void Analysis(const IFChannelBuffer* data, IFChannelBuffer* bands);
+  void Synthesis(const IFChannelBuffer* bands, IFChannelBuffer* data);
+
+ private:
+  // Two-band analysis and synthesis work for 640 samples or less.
+  void TwoBandsAnalysis(const IFChannelBuffer* data, IFChannelBuffer* bands);
+  void TwoBandsSynthesis(const IFChannelBuffer* bands, IFChannelBuffer* data);
+  void ThreeBandsAnalysis(const IFChannelBuffer* data, IFChannelBuffer* bands);
+  void ThreeBandsSynthesis(const IFChannelBuffer* bands, IFChannelBuffer* data);
+  void InitBuffers();
+
+  const size_t num_bands_;
+  std::vector<TwoBandsStates> two_bands_states_;
+  ScopedVector<ThreeBandFilterBank> three_band_filter_banks_;
+};
+
 }  // namespace webrtc
 
-#endif  // WEBRTC_MODULES_AUDIO_PROCESSING_MAIN_SOURCE_SPLITTING_FILTER_H_
+#endif  // WEBRTC_MODULES_AUDIO_PROCESSING_SPLITTING_FILTER_H_

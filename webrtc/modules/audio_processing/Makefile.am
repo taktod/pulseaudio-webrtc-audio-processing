@@ -1,26 +1,104 @@
-SUBDIRS = utility ns aec aecm agc
 lib_LTLIBRARIES = libwebrtc_audio_processing.la
 
-if NS_FIXED
-COMMON_CXXFLAGS += -DWEBRTC_NS_FIXED=1
-NS_LIB = libns_fix
-else
-COMMON_CXXFLAGS += -DWEBRTC_NS_FLOAT=1
-NS_LIB = libns
-endif
-
 webrtcincludedir = $(includedir)/webrtc_audio_processing
-webrtcinclude_HEADERS = $(top_srcdir)/src/typedefs.h \
-			$(top_srcdir)/src/modules/interface/module.h \
-			interface/audio_processing.h \
-			$(top_srcdir)/src/common_types.h \
-			$(top_srcdir)/src/modules/interface/module_common_types.h
+webrtcinclude_HEADERS = $(top_srcdir)/webrtc/base/arraysize.h \
+			$(top_srcdir)/webrtc/base/platform_file.h \
+			$(top_srcdir)/webrtc/common.h \
+			$(top_srcdir)/webrtc/typedefs.h \
+			$(top_srcdir)/webrtc/modules/audio_processing/beamformer/array_util.h \
+			include/audio_processing.h
 
-libwebrtc_audio_processing_la_SOURCES = interface/audio_processing.h \
+libwebrtc_audio_processing_la_SOURCES = include/audio_processing.h \
+					aec/include/echo_cancellation.h \
+					aec/aec_common.h \
+					aec/aec_core.c \
+					aec/aec_core.h \
+					aec/aec_core_internal.h \
+					aec/aec_core_sse2.c \
+					aec/aec_rdft.c \
+					aec/aec_rdft.h \
+					aec/aec_rdft_sse2.c \
+					aec/aec_resampler.c \
+					aec/aec_resampler.h \
+					aec/echo_cancellation.c \
+					aec/echo_cancellation_internal.h \
+					aecm/include/echo_control_mobile.h \
+					aecm/echo_control_mobile.c \
+					aecm/aecm_core.c \
+					aecm/aecm_core.h \
+					aecm/aecm_core_c.c \
+					agc/legacy/analog_agc.c \
+					agc/legacy/analog_agc.h \
+					agc/legacy/gain_control.h \
+					agc/legacy/digital_agc.c \
+					agc/legacy/digital_agc.h \
+					agc/agc.cc \
+					agc/agc.h \
+					agc/agc_manager_direct.cc \
+					agc/agc_manager_direct.h \
+					agc/gain_map_internal.h \
+					agc/histogram.cc \
+					agc/histogram.h \
+					agc/utility.cc \
+					agc/utility.h \
+					beamformer/array_util.h \
+					beamformer/beamformer.h \
+					beamformer/complex_matrix.h \
+					beamformer/covariance_matrix_generator.h \
+					beamformer/matrix.h \
+					beamformer/matrix_test_helpers.h \
+					beamformer/nonlinear_beamformer.h \
+					beamformer/covariance_matrix_generator.cc \
+					beamformer/nonlinear_beamformer.cc \
+					logging/aec_logging.h \
+					logging/aec_logging_file_handling.h \
+					logging/aec_logging_file_handling.cc \
+					transient/common.h \
+					transient/daubechies_8_wavelet_coeffs.h \
+					transient/dyadic_decimator.h \
+					transient/file_utils.h \
+					transient/moving_moments.h \
+					transient/transient_detector.h \
+					transient/transient_suppressor.h \
+					transient/wpd_node.h \
+					transient/wpd_tree.h \
+					transient/click_annotate.cc \
+					transient/file_utils.cc \
+					transient/moving_moments.cc \
+					transient/transient_detector.cc \
+					transient/transient_suppressor.cc \
+					transient/wpd_node.cc \
+					transient/wpd_tree.cc \
+					utility/delay_estimator.c \
+					utility/delay_estimator.h \
+					utility/delay_estimator_internal.h \
+					utility/delay_estimator_wrapper.c \
+					utility/delay_estimator_wrapper.h \
+					vad/common.h \
+					vad/gmm.h \
+					vad/noise_gmm_tables.h \
+					vad/pitch_based_vad.h \
+					vad/pitch_internal.h \
+					vad/pole_zero_filter.h \
+					vad/standalone_vad.h \
+					vad/vad_audio_proc.h \
+					vad/vad_audio_proc_internal.h \
+					vad/vad_circular_buffer.h \
+					vad/voice_activity_detector.h \
+					vad/voice_gmm_tables.h \
+					vad/gmm.cc \
+					vad/pitch_based_vad.cc \
+					vad/pitch_internal.cc \
+					vad/pole_zero_filter.cc \
+					vad/standalone_vad.cc \
+					vad/vad_audio_proc.cc \
+					vad/vad_circular_buffer.cc \
+					vad/voice_activity_detector.cc \
 					audio_buffer.cc \
 					audio_buffer.h \
 					audio_processing_impl.cc \
 					audio_processing_impl.h \
+					common.h \
 					echo_cancellation_impl.cc \
 					echo_cancellation_impl.h \
 					echo_control_mobile_impl.cc \
@@ -33,27 +111,56 @@ libwebrtc_audio_processing_la_SOURCES = interface/audio_processing.h \
 					level_estimator_impl.h \
 					noise_suppression_impl.cc \
 					noise_suppression_impl.h \
+					rms_level.cc \
+					rms_level.h \
 					splitting_filter.cc \
 					splitting_filter.h \
 					processing_component.cc \
 					processing_component.h \
+					three_band_filter_bank.cc \
+					three_band_filter_bank.h \
+					typing_detection.cc \
+					typing_detection.h \
 					voice_detection_impl.cc \
 					voice_detection_impl.h
-libwebrtc_audio_processing_la_CXXFLAGS = $(AM_CXXFLAGS) $(COMMON_CXXFLAGS) \
-				       -I$(top_srcdir)/src/common_audio/signal_processing_library/main/interface \
-				       -I$(top_srcdir)/src/common_audio/vad/main/interface \
-				       -I$(top_srcdir)/src/system_wrappers/interface \
-				       -I$(top_srcdir)/src/modules/audio_processing/utility \
-				       -I$(top_srcdir)/src/modules/audio_processing/ns/interface \
-				       -I$(top_srcdir)/src/modules/audio_processing/aec/interface \
-				       -I$(top_srcdir)/src/modules/audio_processing/aecm/interface \
-				       -I$(top_srcdir)/src/modules/audio_processing/agc/interface
-libwebrtc_audio_processing_la_LIBADD = $(top_builddir)/src/system_wrappers/libsystem_wrappers.la \
-				       $(top_builddir)/src/common_audio/signal_processing_library/libspl.la \
-				       $(top_builddir)/src/common_audio/vad/libvad.la \
-				       $(top_builddir)/src/modules/audio_processing/utility/libapm_util.la \
-				       $(top_builddir)/src/modules/audio_processing/ns/$(NS_LIB).la \
-				       $(top_builddir)/src/modules/audio_processing/aec/libaec.la \
-				       $(top_builddir)/src/modules/audio_processing/aecm/libaecm.la \
-				       $(top_builddir)/src/modules/audio_processing/agc/libagc.la
+
+if NS_FIXED
+COMMON_CXXFLAGS += -DWEBRTC_NS_FIXED=0
+libwebrtc_audio_processing_la_SOURCES += \
+					ns/include/noise_suppression_x.h \
+					ns/noise_suppression_x.c \
+					ns/nsx_defines.h \
+					ns/nsx_core.c \
+					ns/nsx_core.h \
+					ns/nsx_core_c.c
+else
+COMMON_CXXFLAGS += -DWEBRTC_NS_FIXED=1
+libwebrtc_audio_processing_la_SOURCES += \
+					ns/include/noise_suppression.h \
+					ns/noise_suppression.c \
+					ns/defines.h \
+					ns/ns_core.c \
+					ns/ns_core.h \
+					ns/windows_private.h
+endif
+
+libwebrtc_audio_processing_la_CFLAGS = $(AM_CFLAGS) $(COMMON_CFLAGS)
+libwebrtc_audio_processing_la_CXXFLAGS = $(AM_CXXFLAGS) $(COMMON_CXXFLAGS)
+
+libwebrtc_audio_processing_la_LIBADD = $(top_builddir)/webrtc/base/libbase.la \
+				       $(top_builddir)/webrtc/system_wrappers/libsystem_wrappers.la \
+				       $(top_builddir)/webrtc/common_audio/libcommon_audio.la
+				       $(top_builddir)/webrtc/modules/audio_coding/libaudio_coding.la
 libwebrtc_audio_processing_la_LDFLAGS = $(AM_LDFLAGS) -version-info $(LIBWEBRTC_AUDIO_PROCESSING_VERSION_INFO)
+
+# FIXME:
+# x86:  aec/aec_core_sse2.c
+# 	aec/aec_rdft_sse2.c
+# NEON: aec/aec_core_neon.c
+# 	aec/aec_rdft_neon.c
+# 	aecm/aecm_core_neon.c
+#	ns/nsx_core_neon.c
+# MIPS: aec/aec_core_mips.c
+# 	aec/aec_rdft_neon.c
+#       aecm/aecm_core_mips.c
+#       ns/nsx_core_mips.c
