@@ -17,6 +17,7 @@ libwebrtc_audio_processing_la_SOURCES = include/audio_processing.h \
 					aecm/aecm_core.c \
 					aecm/aecm_core.h \
 					aecm/aecm_core_c.c \
+					aecm/aecm_defines.h \
 					agc/legacy/analog_agc.c \
 					agc/legacy/analog_agc.h \
 					agc/legacy/gain_control.h \

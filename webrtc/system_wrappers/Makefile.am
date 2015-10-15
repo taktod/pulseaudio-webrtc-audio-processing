@@ -2,7 +2,9 @@ noinst_LTLIBRARIES = libsystem_wrappers.la
 
 noinst_HEADERS = interface/aligned_array.h \
 		 interface/compile_assert_c.h \
+		 interface/event_wrapper.h \
 		 interface/scoped_vector.h \
+		 interface/static_instance.h \
 		 interface/stl_util.h
 
 libsystem_wrappers_la_SOURCES = interface/aligned_malloc.h \
@@ -11,7 +13,9 @@ libsystem_wrappers_la_SOURCES = interface/aligned_malloc.h \
 				interface/file_wrapper.h \
 				interface/logging.h \
 				interface/metrics.h \
+				interface/rw_lock_wrapper.h \
 				interface/sleep.h \
+				interface/thread_wrapper.h \
 				interface/trace.h \
 				source/aligned_malloc.cc \
 				source/cpu_features.cc \
