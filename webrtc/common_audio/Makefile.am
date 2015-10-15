@@ -11,7 +11,6 @@ libcommon_audio_la_SOURCES = resampler/include/push_resampler.h \
 			     resampler/push_sinc_resampler.cc \
 			     resampler/resampler.cc \
 			     resampler/sinc_resampler.cc \
-			     resampler/sinc_resampler_sse.cc \
 			     resampler/sinusoidal_linear_chirp_source.cc \
 			     signal_processing/include/real_fft.h \
 			     signal_processing/include/signal_processing_library.h \
@@ -78,8 +77,6 @@ libcommon_audio_la_SOURCES = resampler/include/push_resampler.h \
 			     fft4g.h \
 			     fir_filter.cc \
 			     fir_filter.h \
-			     fir_filter_sse.cc \
-			     fir_filter_sse.h \
 			     lapped_transform.cc \
 			     lapped_transform.h \
 			     real_fourier.cc \
@@ -98,28 +95,46 @@ libcommon_audio_la_SOURCES = resampler/include/push_resampler.h \
 			     window_generator.h \
 			     window_generator.cc
 
+if HAVE_X86
+libcommon_audio_la_SOURCES += \
+			     resampler/sinc_resampler_sse.cc \
+			     fir_filter_sse.cc \
+			     fir_filter_sse.h
+endif
+
+if HAVE_ARM
+libcommon_audio_la_SOURCES += \
+			     signal_processing/complex_bit_reverse_arm.S \
+			     signal_processing/spl_sqrt_floor_arm.S
+endif
+
+if HAVE_ARMV7
+libcommon_audio_la_SOURCES += \
+			     signal_processing/filter_ar_fast_q12_armv7.S
+endif
+
+if HAVE_NEON
+libcommon_audio_la_SOURCES += \
+			     resampler/sinc_resampler_neon.cc \
+			     signal_processing/cross_correlation_neon.c \
+			     signal_processing/downsample_fast_neon.c \
+			     signal_processing/min_max_operations_neon.c \
+			     fir_filter_neon.cc \
+			     fir_filter_neon.h
+endif
+
 libcommon_audio_la_CFLAGS = $(AM_CFLAGS) $(COMMON_CFLAGS)
 libcommon_audio_la_CXXFLAGS = $(AM_CXXFLAGS) $(COMMON_CXXFLAGS)
 
-EXTRA_DIST = BUILD.gn
-
-# FIXME:
-# x86  - resampler/sinc_resampler_sse.cc
-#        fir_filter_sse.cc
-# ARM  - signal_processing/complex_bit_reverse_arm.S
-#        signal_processing/spl_sqrt_floor_arm.S
-# ARM7 - signal_processing/filter_ar_fast_q12_armv7.S
-# NEON - resampler/sinc_resampler_neon.cc \
-#        signal_processing/cross_correlation_neon.c
-#        signal_processing/downsample_fast_neon.c
-#        signal_processing/min_max_operations_neon.c
-#        fir_filter_neon.c
-# MIPS - signal_processing/complex_bit_reverse_mips.c
-#        signal_processing/complex_fft_mips.c
-#        signal_processing/cross_correlation_mips.c
-#        signal_processing/downsample_fast_mips.c
-#        signal_processing/filter_ar_fast_q12_mips.c
-#        signal_processing/min_max_operations_mips.c
-#        signal_processing/resample_by_2_mips.c
-#        signal_processing/spl_sqrt_floor_mips.c
-#        signal_processing/vector_scaling_operations_mips.c
+# FIXME: The MIPS optimisations need to be hooked up once we have the
+# autotools conditionals in place
+EXTRA_DIST = BUILD.gn \
+	     signal_processing/complex_bit_reverse_mips.c \
+	     signal_processing/complex_fft_mips.c \
+	     signal_processing/cross_correlation_mips.c \
+	     signal_processing/downsample_fast_mips.c \
+	     signal_processing/filter_ar_fast_q12_mips.c \
+	     signal_processing/min_max_operations_mips.c \
+	     signal_processing/resample_by_2_mips.c \
+	     signal_processing/spl_sqrt_floor_mips.c \
+	     signal_processing/vector_scaling_operations_mips.c

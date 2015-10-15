@@ -7,10 +7,14 @@ AC_SUBST(LIBWEBRTC_AUDIO_PROCESSING_VERSION_INFO, [0:0:0])
 
 AM_SILENT_RULES([yes])
 
+# Set up the host_* variables
+AC_CANONICAL_HOST
+
 AC_PROG_CC
 AC_PROG_CXX
 AC_PROG_LIBTOOL
 AC_PROG_INSTALL
+AM_PROG_AS
 
 AC_LANG_C
 AC_LANG_CPLUSPLUS
@@ -53,8 +57,51 @@ AS_CASE(["${host}"],
 )
 AC_SUBST(PLATFORM_CFLAGS)
 
-COMMON_CFLAGS="-DWEBRTC_AUDIO_PROCESSING_ONLY_BUILD ${PLATFORM_CFLAGS} ${OS_CFLAGS} -DNDEBUG -I\$(top_srcdir)"
-COMMON_CXXFLAGS="-std=c++11 -DWEBRTC_AUDIO_PROCESSING_ONLY_BUILD ${PLATFORM_CFLAGS} ${OS_CFLAGS} -DNDEBUG -I\$(top_srcdir)"
+AS_CASE(["${host_cpu}"],
+    [i?86|x86_64],
+        [
+         HAVE_X86=1
+        ],
+    [armv7*|armv8*],
+        [
+         HAVE_ARM=1
+         HAVE_ARMV7=1
+        ],
+    [arm*],
+        [
+         HAVE_ARM=1
+        ]
+    # FIXME: Add MIPS support, see webrtc/BUILD.gn for defines
+)
+AM_CONDITIONAL(HAVE_X86, [test "x${HAVE_X86}" = "x1"])
+AM_CONDITIONAL(HAVE_ARM, [test "x${HAVE_ARM}" = "x1"])
+AM_CONDITIONAL(HAVE_ARMV7, [test "x${HAVE_ARMV7}" = "x1"])
+
+# Borrowed from pulseaudio's configure.ac
+AC_ARG_ENABLE([neon],
+    AS_HELP_STRING([--enable-neon], [Enable NEON optimisations on ARM CPUs that support it (yes|no|auto|runtime)]))
+
+AS_IF([test "x$enable_neon" != "xno"],
+    AS_IF([test "x$enable_neon" != "xruntime"],
+        [
+         save_CFLAGS="$CFLAGS"; CFLAGS="-mfpu=neon $CFLAGS"
+         AC_COMPILE_IFELSE(
+            [AC_LANG_PROGRAM([[#include <arm_neon.h>]], [])],
+            [
+             HAVE_NEON=1
+             ARCH_CFLAGS="-mfpu=neon"
+            ])
+         CFLAGS="$save_CFLAGS"
+        ],
+        [
+         HAVE_NEON=1
+         ARCH_CFLAGS="-mfpu=neon -DWEBRTC_DETECT_NEON"
+        ])
+)
+AM_CONDITIONAL([HAVE_NEON], [test "x$HAVE_NEON" = "x1"])
+
+COMMON_CFLAGS="-DWEBRTC_AUDIO_PROCESSING_ONLY_BUILD ${PLATFORM_CFLAGS} ${OS_CFLAGS} ${ARCH_CFLAGS} -DNDEBUG -I\$(top_srcdir)"
+COMMON_CXXFLAGS="-std=c++11 -DWEBRTC_AUDIO_PROCESSING_ONLY_BUILD ${PLATFORM_CFLAGS} ${OS_CFLAGS} ${ARCH_CFLAGS} -DNDEBUG -I\$(top_srcdir)"
 AC_SUBST([COMMON_CFLAGS])
 AC_SUBST([COMMON_CXXFLAGS])
 

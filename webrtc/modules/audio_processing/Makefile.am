@@ -6,10 +6,8 @@ libwebrtc_audio_processing_la_SOURCES = include/audio_processing.h \
 					aec/aec_core.c \
 					aec/aec_core.h \
 					aec/aec_core_internal.h \
-					aec/aec_core_sse2.c \
 					aec/aec_rdft.c \
 					aec/aec_rdft.h \
-					aec/aec_rdft_sse2.c \
 					aec/aec_resampler.c \
 					aec/aec_resampler.h \
 					aec/echo_cancellation.c \
@@ -130,6 +128,10 @@ libwebrtc_audio_processing_la_SOURCES += \
 					ns/nsx_core.c \
 					ns/nsx_core.h \
 					ns/nsx_core_c.c
+if HAVE_NEON
+libwebrtc_audio_processing_la_SOURCES += \
+					ns/nsx_core_neon.c
+endif
 else
 COMMON_CFLAGS += -DWEBRTC_NS_FLOAT=1
 COMMON_CXXFLAGS += -DWEBRTC_NS_FLOAT=1
@@ -142,6 +144,19 @@ libwebrtc_audio_processing_la_SOURCES += \
 					ns/windows_private.h
 endif
 
+if HAVE_X86
+libwebrtc_audio_processing_la_SOURCES += \
+					aec/aec_core_sse2.c \
+					aec/aec_rdft_sse2.c
+endif
+
+if HAVE_NEON
+libwebrtc_audio_processing_la_SOURCES += \
+					aec/aec_core_neon.c \
+					aec/aec_rdft_neon.c \
+					aecm/aecm_core_neon.c
+endif
+
 libwebrtc_audio_processing_la_CFLAGS = $(AM_CFLAGS) $(COMMON_CFLAGS)
 libwebrtc_audio_processing_la_CXXFLAGS = $(AM_CXXFLAGS) $(COMMON_CXXFLAGS)
 
@@ -152,16 +167,10 @@ libwebrtc_audio_processing_la_LIBADD = $(top_builddir)/webrtc/libwebrtc.la \
 				       $(top_builddir)/webrtc/modules/audio_coding/libaudio_coding.la
 libwebrtc_audio_processing_la_LDFLAGS = $(AM_LDFLAGS) -version-info $(LIBWEBRTC_AUDIO_PROCESSING_VERSION_INFO)
 
-EXTRA_DIST = BUILD.gn
-
-# FIXME:
-# x86:  aec/aec_core_sse2.c
-# 	aec/aec_rdft_sse2.c
-# NEON: aec/aec_core_neon.c
-# 	aec/aec_rdft_neon.c
-# 	aecm/aecm_core_neon.c
-#	ns/nsx_core_neon.c
-# MIPS: aec/aec_core_mips.c
-# 	aec/aec_rdft_neon.c
-#       aecm/aecm_core_mips.c
-#       ns/nsx_core_mips.c
+# FIXME: The MIPS optimisations need to be hooked up once we have the
+# autotools conditionals in place
+EXTRA_DIST = BUILD.gn \
+	     aec/aec_core_mips.c \
+	     aec/aec_rdft_neon.c \
+	     aecm/aecm_core_mips.c \
+	     ns/nsx_core_mips.c
