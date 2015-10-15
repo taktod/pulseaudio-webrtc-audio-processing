@@ -24,9 +24,37 @@ AS_CASE(["x${with_ns_mode}"],
 	[NS_FIXED=0])
 AM_CONDITIONAL(NS_FIXED, [test "x${NS_FIXED}" = "x1"])
 
-# FIXME: POSIX and LINUX should not be hard-coded
-COMMON_CFLAGS="-DWEBRTC_AUDIO_PROCESSING_ONLY_BUILD -DWEBRTC_POSIX -DWEBRTC_LINUX -DNDEBUG -I\$(top_srcdir)"
-COMMON_CXXFLAGS="-std=c++11 -DWEBRTC_AUDIO_PROCESSING_ONLY_BUILD -DWEBRTC_POSIX -DWEBRTC_LINUX -DNDEBUG -I\$(top_srcdir)"
+
+# Borrowed from gst-plugins-bad
+AC_CHECK_HEADER(MobileCoreServices/MobileCoreServices.h, HAVE_IOS="yes", HAVE_IOS="no", [-])
+
+# Based on gst-plugins-bad configure.ac and defines in
+# <chromium source>/build/config/BUILDCONFIG.gn and
+# webrtc/BUILD.gn
+AS_CASE(["${host}"],
+    [*android*],
+        [
+         OS_CFLAGS="-DWEBRTC_ANDROID -DWEBRTC_LINUX"
+         PLATFORM_CFLAGS="-DWEBRTC_POSIX"
+        ],
+    [*-*linux*],
+        [
+         OS_CFLAGS="-DWEBRTC_LINUX"
+         PLATFORM_CFLAGS="-DWEBRTC_POSIX"
+        ],
+    [*-*darwin*],
+        [
+         AS_IF([test "$HAVE_IOS" = "yes"],
+             [OS_FLAGS="-DWEBRTC_MAC -DWEBRTC_IOS"],
+             [OS_FLAGS="-DWEBRTC_MAC"])
+         PLATFORM_CFLAGS="-DWEBRTC_POSIX"
+        ]
+    # FIXME: Add Windows support
+)
+AC_SUBST(PLATFORM_CFLAGS)
+
+COMMON_CFLAGS="-DWEBRTC_AUDIO_PROCESSING_ONLY_BUILD ${PLATFORM_CFLAGS} ${OS_CFLAGS} -DNDEBUG -I\$(top_srcdir)"
+COMMON_CXXFLAGS="-std=c++11 -DWEBRTC_AUDIO_PROCESSING_ONLY_BUILD ${PLATFORM_CFLAGS} ${OS_CFLAGS} -DNDEBUG -I\$(top_srcdir)"
 AC_SUBST([COMMON_CFLAGS])
 AC_SUBST([COMMON_CXXFLAGS])
 
