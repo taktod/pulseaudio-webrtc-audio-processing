@@ -1,13 +1,5 @@
 lib_LTLIBRARIES = libwebrtc_audio_processing.la
 
-webrtcincludedir = $(includedir)/webrtc_audio_processing
-webrtcinclude_HEADERS = $(top_srcdir)/webrtc/base/arraysize.h \
-			$(top_srcdir)/webrtc/base/platform_file.h \
-			$(top_srcdir)/webrtc/common.h \
-			$(top_srcdir)/webrtc/typedefs.h \
-			$(top_srcdir)/webrtc/modules/audio_processing/beamformer/array_util.h \
-			include/audio_processing.h
-
 libwebrtc_audio_processing_la_SOURCES = include/audio_processing.h \
 					aec/include/echo_cancellation.h \
 					aec/aec_common.h \
