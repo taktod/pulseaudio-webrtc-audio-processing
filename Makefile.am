@@ -14,5 +14,3 @@ nobase_webrtcinclude_HEADERS = webrtc/base/arraysize.h \
 			       webrtc/modules/audio_processing/beamformer/array_util.h \
 			       webrtc/modules/audio_processing/include/audio_processing.h \
 			       webrtc/modules/interface/module_common_types.h
-# FIXME: We should deprecate installing this to the top directory soon
-webrtcinclude_HEADERS = webrtc/modules/audio_processing/include/audio_processing.h
