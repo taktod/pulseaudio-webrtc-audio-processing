@@ -66,10 +66,12 @@ AS_CASE(["${host_cpu}"],
         [
          HAVE_ARM=1
          HAVE_ARMV7=1
+         ARCH_CFLAGS="-DWEBRTC_ARCH_ARM -DWEBRTC_ARCH_ARM_V7"
         ],
     [arm*],
         [
          HAVE_ARM=1
+         ARCH_CFLAGS="-DWEBRTC_ARCH_ARM"
         ]
     # FIXME: Add MIPS support, see webrtc/BUILD.gn for defines
 )
@@ -92,13 +94,13 @@ AS_IF([test "x$enable_neon" != "xno"],
                 ], [])],
             [
              HAVE_NEON=1
-             ARCH_CFLAGS="-mfpu=neon"
+             ARCH_CFLAGS="$ARCH_CFLAGS -DWEBRTC_HAS_NEON -mfpu=neon"
             ])
          CXXFLAGS="$save_CXXFLAGS"
         ],
         [
          HAVE_NEON=1
-         ARCH_CFLAGS="-mfpu=neon -DWEBRTC_DETECT_NEON"
+         ARCH_CFLAGS="$ARCH_CFLAGS -DWEBRTC_DETECT_NEON -mfpu=neon"
         ])
 )
 AM_CONDITIONAL([HAVE_NEON], [test "x$HAVE_NEON" = "x1"])
