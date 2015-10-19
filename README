@@ -19,7 +19,7 @@ Feedback
 Patches, suggestions welcome. You can send them to the PulseAudio mailing
 list[2] or to me at the address below.
 
--- Arun Raghavan <arun.raghavan@collabora.co.uk>
+-- Arun Raghavan <mail@arunraghavan.net>
 
 [2] http://lists.freedesktop.org/mailman/listinfo/pulseaudio-discuss
 
@@ -29,12 +29,16 @@ Notes
 Assembling some quick notes on maintaining this tree vs. the original WebRTC
 project source code.
 
-1. Running meld on a pristine tree's src/ vs. the same directory in the WebRTC
-   code should produce a fairly easy-to-parse set of differences that can be
-   merged. I've kept the test code out for now, but this might get merged in
-   the future. The .gyp/.gypi files are included to make tracking addition and
-   removal of files easy to track.
+1. Running meld on a pristine tree's webrtc/ vs. the same directory in the
+   Chromium third_party/webrtc/should produce a fairly easy-to-parse set of
+   differences that can be merged. I've kept the test code out for now, but
+   this might get merged in the future. The .gn files are included to make
+   allow tracking changes to the build system easier.
 
-2. Be sure to keep the keep the comment on top of the version field in
-   configure.ac up-to-date so that it's easy to track what changes went in at
-   what point.
+2. Some files need to be patch to avoid pulling in the gtest framework. This
+   should ideally be pushed upstream in some way so we're able to just pull
+   in what we need without changing anything.
+
+3. It might be nice to try LTO on the library. We build a lot of code as part
+   of the main AudioProcessing module deps, and it's possible that this could
+   provide significant space savings.

@@ -1,5 +1,3 @@
-# Revision changelog (version - date, svn rev. from upstream that was merged)
-#    0.1 - 21 Oct 2011, r789
 AC_INIT([webrtc-audio-processing], [0.1])
 AM_INIT_AUTOMAKE([dist-xz subdir-objects tar-ustar])
 
