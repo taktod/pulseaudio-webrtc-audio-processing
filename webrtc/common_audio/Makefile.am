@@ -123,6 +123,7 @@ libcommon_audio_la_SOURCES += \
 			     fir_filter_neon.h
 endif
 
+libcommon_audio_la_CCASFLAGS = $(AM_CCASFLAGS) $(COMMON_CFLAGS)
 libcommon_audio_la_CFLAGS = $(AM_CFLAGS) $(COMMON_CFLAGS)
 libcommon_audio_la_CXXFLAGS = $(AM_CXXFLAGS) $(COMMON_CXXFLAGS)
 
