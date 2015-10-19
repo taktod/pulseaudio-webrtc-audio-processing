@@ -84,7 +84,7 @@ AC_ARG_ENABLE([neon],
 AS_IF([test "x$enable_neon" != "xno"],
     AS_IF([test "x$enable_neon" != "xruntime"],
         [
-         save_CFLAGS="$CFLAGS"; CFLAGS="-mfpu=neon $CFLAGS"
+         save_CXXFLAGS="$CXXFLAGS"; CXXFLAGS="-mfpu=neon $CXXFLAGS"
          AC_COMPILE_IFELSE(
             [AC_LANG_PROGRAM(
                 [
@@ -94,7 +94,7 @@ AS_IF([test "x$enable_neon" != "xno"],
              HAVE_NEON=1
              ARCH_CFLAGS="-mfpu=neon"
             ])
-         CFLAGS="$save_CFLAGS"
+         CXXFLAGS="$save_CXXFLAGS"
         ],
         [
          HAVE_NEON=1
