@@ -19,7 +19,6 @@ libcommon_audio_la_SOURCES = resampler/include/push_resampler.h \
 			     signal_processing/include/spl_inl_mips.h \
 			     signal_processing/auto_corr_to_refl_coef.c \
 			     signal_processing/auto_correlation.c \
-			     signal_processing/complex_bit_reverse.c \
 			     signal_processing/complex_fft.c \
 			     signal_processing/complex_fft_tables.h \
 			     signal_processing/copy_set_operations.c \
@@ -29,7 +28,6 @@ libcommon_audio_la_SOURCES = resampler/include/push_resampler.h \
 			     signal_processing/downsample_fast.c \
 			     signal_processing/energy.c \
 			     signal_processing/filter_ar.c \
-			     signal_processing/filter_ar_fast_q12.c \
 			     signal_processing/filter_ma_fast_q12.c \
 			     signal_processing/get_hanning_window.c \
 			     signal_processing/get_scaling_square.c \
@@ -48,7 +46,6 @@ libcommon_audio_la_SOURCES = resampler/include/push_resampler.h \
 			     signal_processing/resample_fractional.c \
 			     signal_processing/spl_init.c \
 			     signal_processing/spl_sqrt.c \
-			     signal_processing/spl_sqrt_floor.c \
 			     signal_processing/splitting_filter.c \
 			     signal_processing/sqrt_of_one_minus_x_squared.c \
 			     signal_processing/vector_scaling_operations.c \
@@ -121,6 +118,14 @@ libcommon_audio_la_SOURCES += \
 			     signal_processing/min_max_operations_neon.c \
 			     fir_filter_neon.cc \
 			     fir_filter_neon.h
+endif
+
+if !HAVE_ARM
+# FIXME: This condition will also hold for !HAVE_MIPS
+libcommon_audio_la_SOURCES += \
+			     signal_processing/complex_bit_reverse.c \
+			     signal_processing/filter_ar_fast_q12.c \
+			     signal_processing/spl_sqrt_floor.c
 endif
 
 libcommon_audio_la_CCASFLAGS = $(AM_CCASFLAGS) $(COMMON_CFLAGS)
