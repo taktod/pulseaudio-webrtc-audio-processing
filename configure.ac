@@ -86,7 +86,10 @@ AS_IF([test "x$enable_neon" != "xno"],
         [
          save_CFLAGS="$CFLAGS"; CFLAGS="-mfpu=neon $CFLAGS"
          AC_COMPILE_IFELSE(
-            [AC_LANG_PROGRAM([[#include <arm_neon.h>]], [])],
+            [AC_LANG_PROGRAM(
+                [
+                 #include <arm_neon.h>
+                ], [])],
             [
              HAVE_NEON=1
              ARCH_CFLAGS="-mfpu=neon"
