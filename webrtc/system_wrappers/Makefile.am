@@ -1,6 +1,7 @@
 noinst_LTLIBRARIES = libsystem_wrappers.la
 
 noinst_HEADERS = interface/aligned_array.h \
+		 interface/asm_defines.h \
 		 interface/compile_assert_c.h \
 		 interface/event_wrapper.h \
 		 interface/scoped_vector.h \
