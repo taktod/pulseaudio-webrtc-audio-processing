@@ -39,6 +39,7 @@ libwebrtc_audio_processing_la_SOURCES = include/audio_processing.h \
 					beamformer/matrix.h \
 					beamformer/matrix_test_helpers.h \
 					beamformer/nonlinear_beamformer.h \
+					beamformer/array_util.cc \
 					beamformer/covariance_matrix_generator.cc \
 					beamformer/nonlinear_beamformer.cc \
 					intelligibility/intelligibility_enhancer.h \

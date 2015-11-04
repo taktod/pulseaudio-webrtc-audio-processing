@@ -37,10 +37,10 @@ extern "C" {
 #include "webrtc/modules/audio_processing/transient/transient_suppressor.h"
 #include "webrtc/modules/audio_processing/voice_detection_impl.h"
 #include "webrtc/modules/interface/module_common_types.h"
-#include "webrtc/system_wrappers/interface/critical_section_wrapper.h"
-#include "webrtc/system_wrappers/interface/file_wrapper.h"
-#include "webrtc/system_wrappers/interface/logging.h"
-#include "webrtc/system_wrappers/interface/metrics.h"
+#include "webrtc/system_wrappers/include/critical_section_wrapper.h"
+#include "webrtc/system_wrappers/include/file_wrapper.h"
+#include "webrtc/system_wrappers/include/logging.h"
+#include "webrtc/system_wrappers/include/metrics.h"
 
 #ifdef WEBRTC_AUDIOPROC_DEBUG_DUMP
 // Files generated at build-time by the protobuf compiler.
@@ -225,6 +225,7 @@ AudioProcessingImpl::AudioProcessingImpl(const Config& config,
       beamformer_enabled_(config.Get<Beamforming>().enabled),
       beamformer_(beamformer),
       array_geometry_(config.Get<Beamforming>().array_geometry),
+      target_direction_(config.Get<Beamforming>().target_direction),
       intelligibility_enabled_(config.Get<Intelligibility>().enabled) {
   echo_cancellation_ = new EchoCancellationImpl(this, crit_);
   component_list_.push_back(echo_cancellation_);
@@ -1099,7 +1100,8 @@ void AudioProcessingImpl::InitializeTransient() {
 void AudioProcessingImpl::InitializeBeamformer() {
   if (beamformer_enabled_) {
     if (!beamformer_) {
-      beamformer_.reset(new NonlinearBeamformer(array_geometry_));
+      beamformer_.reset(
+          new NonlinearBeamformer(array_geometry_, target_direction_));
     }
     beamformer_->Initialize(kChunkSizeMs, split_rate_);
   }

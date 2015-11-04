@@ -8,8 +8,8 @@
 // be found in the AUTHORS file in the root of the source tree.
 //
 
-#ifndef WEBRTC_SYSTEM_WRAPPERS_INTERFACE_METRICS_H_
-#define WEBRTC_SYSTEM_WRAPPERS_INTERFACE_METRICS_H_
+#ifndef WEBRTC_SYSTEM_WRAPPERS_INCLUDE_METRICS_H_
+#define WEBRTC_SYSTEM_WRAPPERS_INCLUDE_METRICS_H_
 
 #include <string>
 
@@ -72,6 +72,9 @@
 #define RTC_HISTOGRAM_COUNTS_100(name, sample) RTC_HISTOGRAM_COUNTS( \
     name, sample, 1, 100, 50)
 
+#define RTC_HISTOGRAM_COUNTS_200(name, sample) RTC_HISTOGRAM_COUNTS( \
+    name, sample, 1, 200, 50)
+
 #define RTC_HISTOGRAM_COUNTS_1000(name, sample) RTC_HISTOGRAM_COUNTS( \
     name, sample, 1, 1000, 50)
 
@@ -132,5 +135,5 @@ void HistogramAdd(
 }  // namespace metrics
 }  // namespace webrtc
 
-#endif  // WEBRTC_SYSTEM_WRAPPERS_INTERFACE_METRICS_H_
+#endif  // WEBRTC_SYSTEM_WRAPPERS_INCLUDE_METRICS_H_
 

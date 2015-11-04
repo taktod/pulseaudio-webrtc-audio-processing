@@ -48,8 +48,8 @@
 //     LOG_FERR1(LS_WARNING, Foo, bar);
 //   }
 
-#ifndef WEBRTC_SYSTEM_WRAPPERS_INTERFACE_LOGGING_H_
-#define WEBRTC_SYSTEM_WRAPPERS_INTERFACE_LOGGING_H_
+#ifndef WEBRTC_SYSTEM_WRAPPERS_INCLUDE_LOGGING_H_
+#define WEBRTC_SYSTEM_WRAPPERS_INCLUDE_LOGGING_H_
 
 #include <sstream>
 
@@ -131,7 +131,7 @@ class LogMessageVoidify {
     webrtc::LogMessage(__FILE__, __LINE__, sev).stream()
 
 // The _F version prefixes the message with the current function name.
-#if (defined(__GNUC__) && defined(_DEBUG)) || defined(WANT_PRETTY_LOG_F)
+#if (defined(__GNUC__) && !defined(NDEBUG)) || defined(WANT_PRETTY_LOG_F)
 #define LOG_F(sev) LOG(sev) << __PRETTY_FUNCTION__ << ": "
 #else
 #define LOG_F(sev) LOG(sev) << __FUNCTION__ << ": "
@@ -158,4 +158,4 @@ class LogMessageVoidify {
 
 }  // namespace webrtc
 
-#endif  // WEBRTC_SYSTEM_WRAPPERS_INTERFACE_LOGGING_H_
+#endif  // WEBRTC_SYSTEM_WRAPPERS_INCLUDE_LOGGING_H_

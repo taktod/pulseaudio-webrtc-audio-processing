@@ -94,6 +94,7 @@ static_library("rtc_base_approved") {
   public_configs = [ "..:common_inherited_config" ]
 
   sources = [
+    "array_view.h",
     "atomicops.h",
     "bitbuffer.cc",
     "bitbuffer.h",
@@ -114,6 +115,7 @@ static_library("rtc_base_approved") {
     "event_tracer.h",
     "exp_filter.cc",
     "exp_filter.h",
+    "maybe.h",
     "md5.cc",
     "md5.h",
     "md5digest.cc",
@@ -237,6 +239,8 @@ static_library("rtc_base") {
     "nethelpers.h",
     "network.cc",
     "network.h",
+    "networkmonitor.cc",
+    "networkmonitor.h",
     "nullsocketserver.h",
     "pathutils.cc",
     "pathutils.h",

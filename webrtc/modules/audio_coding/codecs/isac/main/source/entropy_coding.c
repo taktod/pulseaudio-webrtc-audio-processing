@@ -17,10 +17,10 @@
  */
 
 
-#include "webrtc/common_audio/signal_processing/include/signal_processing_library.h"
 #include "entropy_coding.h"
 #include "settings.h"
 #include "arith_routines.h"
+#include "webrtc/common_audio/signal_processing/include/signal_processing_library.h"
 #include "spectrum_ar_model_tables.h"
 #include "lpc_tables.h"
 #include "pitch_gain_tables.h"

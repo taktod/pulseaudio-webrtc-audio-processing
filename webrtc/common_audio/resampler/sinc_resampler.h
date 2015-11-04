@@ -16,7 +16,7 @@
 
 #include "webrtc/base/constructormagic.h"
 #include "webrtc/base/scoped_ptr.h"
-#include "webrtc/system_wrappers/interface/aligned_malloc.h"
+#include "webrtc/system_wrappers/include/aligned_malloc.h"
 #ifndef WEBRTC_AUDIO_PROCESSING_ONLY_BUILD
 #include "webrtc/test/testsupport/gtest_prod_util.h"
 #endif

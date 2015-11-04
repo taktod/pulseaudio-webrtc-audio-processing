@@ -1,23 +1,23 @@
 noinst_LTLIBRARIES = libsystem_wrappers.la
 
-noinst_HEADERS = interface/aligned_array.h \
-		 interface/asm_defines.h \
-		 interface/compile_assert_c.h \
-		 interface/event_wrapper.h \
-		 interface/scoped_vector.h \
-		 interface/static_instance.h \
-		 interface/stl_util.h
+noinst_HEADERS = include/aligned_array.h \
+		 include/asm_defines.h \
+		 include/compile_assert_c.h \
+		 include/event_wrapper.h \
+		 include/scoped_vector.h \
+		 include/static_instance.h \
+		 include/stl_util.h
 
-libsystem_wrappers_la_SOURCES = interface/aligned_malloc.h \
-				interface/cpu_features_wrapper.h \
-				interface/critical_section_wrapper.h \
-				interface/file_wrapper.h \
-				interface/logging.h \
-				interface/metrics.h \
-				interface/rw_lock_wrapper.h \
-				interface/sleep.h \
-				interface/thread_wrapper.h \
-				interface/trace.h \
+libsystem_wrappers_la_SOURCES = include/aligned_malloc.h \
+				include/cpu_features_wrapper.h \
+				include/critical_section_wrapper.h \
+				include/file_wrapper.h \
+				include/logging.h \
+				include/metrics.h \
+				include/rw_lock_wrapper.h \
+				include/sleep.h \
+				include/thread_wrapper.h \
+				include/trace.h \
 				source/aligned_malloc.cc \
 				source/cpu_features.cc \
 				source/event.cc \

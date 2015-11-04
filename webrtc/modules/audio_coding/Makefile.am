@@ -1,6 +1,6 @@
 noinst_LTLIBRARIES = libaudio_coding.la
 
-libaudio_coding_la_SOURCES = codecs/isac/main/interface/isac.h \
+libaudio_coding_la_SOURCES = codecs/isac/main/include/isac.h \
 			     codecs/isac/main/source/arith_routines.c \
 			     codecs/isac/main/source/arith_routines.h \
 			     codecs/isac/main/source/arith_routines_hist.c \
