@@ -8,7 +8,9 @@ project source code.
    webrtc git repository Chromium uses.
 
 2. Instructions on checking out the Chromium tree are on the
-   [Chromium site][get-chromium].
+   [Chromium site][get-chromium]. As a shortcut, you can look at the DEPS file
+   in the Chromium tree for the current webrtc version being used, and then
+   just use that commit hash with the webrtc tree.
 
 3. [Meld][meld] is a great tool for diffing two directories. Start by running
    it on ```webrtc-audio-processing/webrtc``` and
