@@ -166,8 +166,11 @@ libwebrtc_audio_processing_la_LIBADD = $(top_builddir)/webrtc/libwebrtc.la \
 				       $(top_builddir)/webrtc/base/libbase.la \
 				       $(top_builddir)/webrtc/system_wrappers/libsystem_wrappers.la \
 				       $(top_builddir)/webrtc/common_audio/libcommon_audio.la \
-				       $(top_builddir)/webrtc/modules/audio_coding/libaudio_coding.la
-libwebrtc_audio_processing_la_LDFLAGS = $(AM_LDFLAGS) -version-info $(LIBWEBRTC_AUDIO_PROCESSING_VERSION_INFO)
+				       $(top_builddir)/webrtc/modules/audio_coding/libaudio_coding.la \
+				       -lpthread
+libwebrtc_audio_processing_la_LDFLAGS = $(AM_LDFLAGS) \
+					-Wl,--no-undefined \
+					-version-info $(LIBWEBRTC_AUDIO_PROCESSING_VERSION_INFO)
 
 # FIXME: The MIPS optimisations need to be hooked up once we have the
 # autotools conditionals in place
