@@ -147,9 +147,14 @@ libwebrtc_audio_processing_la_SOURCES += \
 endif
 
 if HAVE_X86
-libwebrtc_audio_processing_la_SOURCES += \
+noinst_LTLIBRARIES = libwebrtc_audio_processing_privatearch.la
+LIBWEBRTC_PRIVATEARCH=libwebrtc_audio_processing_privatearch.la
+libwebrtc_audio_processing_privatearch_la_SOURCES = \
 					aec/aec_core_sse2.c \
 					aec/aec_rdft_sse2.c
+libwebrtc_audio_processing_privatearch_la_CFLAGS = $(AM_CFLAGS) $(COMMON_CFLAGS) -msse2
+libwebrtc_audio_processing_privatearch_la_CXXFLAGS = $(AM_CXXFLAGS) $(COMMON_CXXFLAGS) -msse2
+libwebrtc_audio_processing_privatearch_la_LDFLAGS = $(AM_LDFLAGS)
 endif
 
 if HAVE_NEON
@@ -167,6 +172,7 @@ libwebrtc_audio_processing_la_LIBADD = $(top_builddir)/webrtc/libwebrtc.la \
 				       $(top_builddir)/webrtc/system_wrappers/libsystem_wrappers.la \
 				       $(top_builddir)/webrtc/common_audio/libcommon_audio.la \
 				       $(top_builddir)/webrtc/modules/audio_coding/libaudio_coding.la \
+				       $(LIBWEBRTC_PRIVATEARCH) \
 				       -lpthread
 libwebrtc_audio_processing_la_LDFLAGS = $(AM_LDFLAGS) \
 					-Wl,--no-undefined \

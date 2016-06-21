@@ -93,10 +93,17 @@ libcommon_audio_la_SOURCES = resampler/include/push_resampler.h \
 			     window_generator.cc
 
 if HAVE_X86
-libcommon_audio_la_SOURCES += \
+noinst_LTLIBRARIES += libcommon_audio_sse2.la
+libcommon_audio_sse2_la_SOURCES = \
 			     resampler/sinc_resampler_sse.cc \
 			     fir_filter_sse.cc \
 			     fir_filter_sse.h
+
+libcommon_audio_sse2_la_CFLAGS = $(AM_CFLAGS) $(COMMON_CFLAGS) -msse2
+libcommon_audio_sse2_la_CXXFLAGS = $(AM_CXXFLAGS) $(COMMON_CXXFLAGS) -msse2
+libcommon_audio_sse2_la_LDFLAGS = $(AM_LDFLAGS)
+
+libcommon_audio_la_LIBADD = libcommon_audio_sse2.la
 endif
 
 if HAVE_ARM
