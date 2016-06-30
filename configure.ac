@@ -26,6 +26,21 @@ AS_CASE(["x${with_ns_mode}"],
 	[NS_FIXED=0])
 AM_CONDITIONAL(NS_FIXED, [test "x${NS_FIXED}" = "x1"])
 
+AC_ARG_WITH(
+  gnustl,
+  AC_HELP_STRING(
+    [--with-gnustl],
+    [use gnustl @<:@default=no@:>@]),
+  [AS_CASE(
+    [$withval], [no], [], [yes], [],
+    [AC_MSG_ERROR([bad value "$withval" for --with-gnustl])])],
+  [with_gnustl=no])
+if test "x$with_gnustl" != "xno"; then
+  PKG_CHECK_MODULES(GNUSTL, gnustl)
+fi
+AC_SUBST(GNUSTL_LIBS)
+AC_SUBST(GNUSTL_CFLAGS)
+
 
 # Borrowed from gst-plugins-bad
 AC_CHECK_HEADER(MobileCoreServices/MobileCoreServices.h, HAVE_IOS="yes", HAVE_IOS="no", [-])
@@ -104,7 +119,7 @@ AS_IF([test "x$enable_neon" != "xno"],
 AM_CONDITIONAL([HAVE_NEON], [test "x$HAVE_NEON" = "x1"])
 
 COMMON_CFLAGS="-DWEBRTC_AUDIO_PROCESSING_ONLY_BUILD ${PLATFORM_CFLAGS} ${OS_CFLAGS} ${ARCH_CFLAGS} -DNDEBUG -I\$(top_srcdir)"
-COMMON_CXXFLAGS="-std=c++11 -DWEBRTC_AUDIO_PROCESSING_ONLY_BUILD ${PLATFORM_CFLAGS} ${OS_CFLAGS} ${ARCH_CFLAGS} -DNDEBUG -I\$(top_srcdir)"
+COMMON_CXXFLAGS="-std=c++11 -DWEBRTC_AUDIO_PROCESSING_ONLY_BUILD ${PLATFORM_CFLAGS} ${OS_CFLAGS} ${ARCH_CFLAGS} ${GNUSTL_CFLAGS} -DNDEBUG -I\$(top_srcdir)"
 AC_SUBST([COMMON_CFLAGS])
 AC_SUBST([COMMON_CXXFLAGS])
 

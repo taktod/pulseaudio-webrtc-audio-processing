@@ -173,6 +173,7 @@ libwebrtc_audio_processing_la_LIBADD = $(top_builddir)/webrtc/libwebrtc.la \
 				       $(top_builddir)/webrtc/common_audio/libcommon_audio.la \
 				       $(top_builddir)/webrtc/modules/audio_coding/libaudio_coding.la \
 				       $(LIBWEBRTC_PRIVATEARCH) \
+				       $(GNUSTL_LIBS) \
 				       -lpthread
 libwebrtc_audio_processing_la_LDFLAGS = $(AM_LDFLAGS) \
 					-Wl,--no-undefined \
