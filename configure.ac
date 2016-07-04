@@ -65,8 +65,11 @@ AS_CASE(["${host}"],
              [OS_FLAGS="-DWEBRTC_MAC -DWEBRTC_IOS"],
              [OS_FLAGS="-DWEBRTC_MAC"])
          PLATFORM_CFLAGS="-DWEBRTC_POSIX"
+        ],
+    [*-mingw32*],
+        [
+         PLATFORM_CFLAGS="-DWEBRTC_WIN -U__STRICT_ANSI__"
         ]
-    # FIXME: Add Windows support
 )
 AC_SUBST(PLATFORM_CFLAGS)
 
