@@ -71,7 +71,7 @@ AS_CASE(["${host}"],
         ],
     [*-mingw32*],
         [
-         PLATFORM_CFLAGS="-DWEBRTC_WIN -U__STRICT_ANSI__"
+         PLATFORM_CFLAGS="-DWEBRTC_WIN -D_WIN32 -U__STRICT_ANSI__"
          HAVE_WIN=1
         ]
 )
