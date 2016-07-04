@@ -42,13 +42,21 @@ libsystem_wrappers_la_SOURCES = include/aligned_malloc.h \
 				source/trace_impl.h \
 				source/trace_posix.h \
 				source/trace_win.h
-# This assumes that we want the POSIX implementation -- should eventually be
-# converted to a conditional to include Windows support
+if HAVE_POSIX
 libsystem_wrappers_la_SOURCES += source/critical_section_posix.cc \
 				 source/event_timer_posix.cc \
 				 source/rw_lock_posix.cc \
 				 source/thread_posix.cc \
 				 source/trace_posix.cc
+endif
+if HAVE_WIN
+libsystem_wrappers_la_SOURCES += source/critical_section_win.cc \
+				 source/event_timer_win.cc \
+				 source/rw_lock_win.cc \
+				 source/rw_lock_generic.cc \
+				 source/thread_win.cc \
+				 source/trace_win.cc
+endif
 libsystem_wrappers_la_CXXFLAGS = $(AM_CXXFLAGS) $(COMMON_CXXFLAGS)
 
 EXTRA_DIST = BUILD.gn \

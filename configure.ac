@@ -53,11 +53,13 @@ AS_CASE(["${host}"],
         [
          OS_CFLAGS="-DWEBRTC_ANDROID -DWEBRTC_LINUX"
          PLATFORM_CFLAGS="-DWEBRTC_POSIX"
+         HAVE_POSIX=1
         ],
     [*-*linux*],
         [
          OS_CFLAGS="-DWEBRTC_LINUX"
          PLATFORM_CFLAGS="-DWEBRTC_POSIX"
+         HAVE_POSIX=1
         ],
     [*-*darwin*],
         [
@@ -65,13 +67,17 @@ AS_CASE(["${host}"],
              [OS_FLAGS="-DWEBRTC_MAC -DWEBRTC_IOS"],
              [OS_FLAGS="-DWEBRTC_MAC"])
          PLATFORM_CFLAGS="-DWEBRTC_POSIX"
+         HAVE_POSIX=1
         ],
     [*-mingw32*],
         [
          PLATFORM_CFLAGS="-DWEBRTC_WIN -U__STRICT_ANSI__"
+         HAVE_WIN=1
         ]
 )
 AC_SUBST(PLATFORM_CFLAGS)
+AM_CONDITIONAL(HAVE_POSIX, [test "x${HAVE_POSIX}" = "x1"])
+AM_CONDITIONAL(HAVE_WIN, [test "x${HAVE_WIN}" = "x1"])
 
 AS_CASE(["${host_cpu}"],
     [i?86|x86_64],
