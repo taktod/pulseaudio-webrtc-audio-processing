@@ -64,8 +64,8 @@ AS_CASE(["${host}"],
     [*-*darwin*],
         [
          AS_IF([test "$HAVE_IOS" = "yes"],
-             [OS_FLAGS="-DWEBRTC_MAC -DWEBRTC_IOS"],
-             [OS_FLAGS="-DWEBRTC_MAC"])
+             [OS_CFLAGS="-DWEBRTC_MAC -DWEBRTC_IOS"],
+             [OS_CFLAGS="-DWEBRTC_MAC"])
          PLATFORM_CFLAGS="-DWEBRTC_POSIX"
          HAVE_POSIX=1
         ],
