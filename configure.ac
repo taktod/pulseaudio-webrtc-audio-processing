@@ -73,7 +73,8 @@ AS_CASE(["${host}"],
         [
          PLATFORM_CFLAGS="-DWEBRTC_WIN -D_WIN32 -U__STRICT_ANSI__"
          HAVE_WIN=1
-        ]
+        ],
+    [AC_MSG_ERROR([Unsupported host $host])]
 )
 AC_SUBST(PLATFORM_CFLAGS)
 AM_CONDITIONAL(HAVE_POSIX, [test "x${HAVE_POSIX}" = "x1"])
@@ -94,8 +95,9 @@ AS_CASE(["${host_cpu}"],
         [
          HAVE_ARM=1
          ARCH_CFLAGS="-DWEBRTC_ARCH_ARM"
-        ]
+        ],
     # FIXME: Add MIPS support, see webrtc/BUILD.gn for defines
+    [AC_MSG_ERROR([Unsupported CPU type $host_cpu])]
 )
 AM_CONDITIONAL(HAVE_X86, [test "x${HAVE_X86}" = "x1"])
 AM_CONDITIONAL(HAVE_ARM, [test "x${HAVE_ARM}" = "x1"])
