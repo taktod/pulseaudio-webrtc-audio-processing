@@ -2,6 +2,7 @@ noinst_LTLIBRARIES = libsystem_wrappers.la
 
 noinst_HEADERS = include/aligned_array.h \
 		 include/asm_defines.h \
+		 include/condition_variable_wrapper.h \
 		 include/compile_assert_c.h \
 		 include/event_wrapper.h \
 		 include/scoped_vector.h \
@@ -42,27 +43,49 @@ libsystem_wrappers_la_SOURCES = include/aligned_malloc.h \
 				source/trace_impl.h \
 				source/trace_posix.h \
 				source/trace_win.h
+
+EXTRA_DIST = BUILD.gn
+
 if HAVE_POSIX
 libsystem_wrappers_la_SOURCES += source/critical_section_posix.cc \
 				 source/event_timer_posix.cc \
 				 source/rw_lock_posix.cc \
 				 source/thread_posix.cc \
 				 source/trace_posix.cc
+else
+EXTRA_DIST += source/critical_section_posix.cc \
+			  source/event_timer_posix.cc \
+			  source/rw_lock_posix.cc \
+			  source/thread_posix.cc \
+			  source/trace_posix.cc
 endif
+
 if HAVE_WIN
-libsystem_wrappers_la_SOURCES += source/critical_section_win.cc \
+libsystem_wrappers_la_SOURCES += include/fix_interlocked_exchange_pointer_win.h \
+				 source/critical_section_win.cc \
+				 source/condition_variable.cc \
+				 source/condition_variable_event_win.cc \
+				 source/condition_variable_event_win.h \
+				 source/condition_variable_native_win.cc \
+				 source/condition_variable_native_win.h \
 				 source/event_timer_win.cc \
 				 source/rw_lock_win.cc \
 				 source/rw_lock_generic.cc \
 				 source/thread_win.cc \
 				 source/trace_win.cc
+else
+EXTRA_DIST += include/fix_interlocked_exchange_pointer_win.h \
+	      source/critical_section_win.cc \
+	      source/condition_variable.cc \
+	      source/condition_variable_event_win.cc \
+	      source/condition_variable_event_win.h \
+	      source/condition_variable_native_win.cc \
+	      source/condition_variable_native_win.h \
+	      source/event_timer_win.cc \
+	      source/rw_lock_generic.cc \
+	      source/rw_lock_win.cc \
+	      source/thread_win.cc \
+	      source/trace_win.cc
 endif
-libsystem_wrappers_la_CXXFLAGS = $(AM_CXXFLAGS) $(COMMON_CXXFLAGS)
 
-EXTRA_DIST = BUILD.gn \
-	     source/critical_section_win.cc \
-	     source/event_timer_win.cc \
-	     source/rw_lock_generic.cc \
-	     source/rw_lock_win.cc \
-	     source/thread_win.cc \
-	     source/trace_win.cc
+libsystem_wrappers_la_CXXFLAGS = $(AM_CXXFLAGS) $(COMMON_CXXFLAGS)
