@@ -60,7 +60,7 @@ AS_CASE(["${host}"],
         [
          OS_CFLAGS="-DWEBRTC_LINUX -DWEBRTC_THREAD_RR"
          PLATFORM_CFLAGS="-DWEBRTC_POSIX"
-         OS_LDFLAGS="-lrt"
+         OS_LDFLAGS="-lrt -lpthread"
          HAVE_POSIX=1
         ],
     [*-*darwin*],
