@@ -99,6 +99,11 @@ AS_CASE(["${host_cpu}"],
          HAVE_ARM=1
          ARCH_CFLAGS="-DWEBRTC_ARCH_ARM"
         ],
+    [aarch64*],
+        [
+         HAVE_NEON=1
+         ARCH_CFLAGS="-DWEBRTC_HAS_NEON -DWEBRTC_ARCH_ARM64"
+        ],
     # FIXME: Add MIPS support, see webrtc/BUILD.gn for defines
     [AC_MSG_ERROR([Unsupported CPU type $host_cpu])]
 )
