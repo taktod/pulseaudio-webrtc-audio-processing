@@ -51,26 +51,29 @@ AC_CHECK_HEADER(MobileCoreServices/MobileCoreServices.h, HAVE_IOS="yes", HAVE_IO
 AS_CASE(["${host}"],
     [*android*],
         [
-         OS_CFLAGS="-DWEBRTC_ANDROID -DWEBRTC_LINUX"
+         OS_CFLAGS="-DWEBRTC_ANDROID -DWEBRTC_LINUX -DWEBRTC_THREAD_RR -DWEBRTC_CLOCK_TYPE_REALTIME"
+         OS_LDFLAGS="-llog"
          PLATFORM_CFLAGS="-DWEBRTC_POSIX"
          HAVE_POSIX=1
         ],
     [*-*linux*],
         [
-         OS_CFLAGS="-DWEBRTC_LINUX"
+         OS_CFLAGS="-DWEBRTC_LINUX -DWEBRTC_THREAD_RR"
          PLATFORM_CFLAGS="-DWEBRTC_POSIX"
+         OS_LDFLAGS="-lrt"
          HAVE_POSIX=1
         ],
     [*-*darwin*],
         [
+         OS_CFLAGS="-DWEBRTC_MAC -DWEBRTC_THREAD_RR -DWEBRTC_CLOCK_TYPE_REALTIME"
          AS_IF([test "$HAVE_IOS" = "yes"],
-             [OS_CFLAGS="-DWEBRTC_MAC -DWEBRTC_IOS"],
-             [OS_CFLAGS="-DWEBRTC_MAC"])
+             [OS_CFLAGS+=" -DWEBRTC_IOS"])
          PLATFORM_CFLAGS="-DWEBRTC_POSIX"
          HAVE_POSIX=1
         ],
     [*-mingw32*],
         [
+         OS_LDFLAGS="-lwinmm"
          PLATFORM_CFLAGS="-DWEBRTC_WIN -D_WIN32 -U__STRICT_ANSI__"
          HAVE_WIN=1
         ],
@@ -131,8 +134,10 @@ AM_CONDITIONAL([HAVE_NEON], [test "x$HAVE_NEON" = "x1"])
 
 COMMON_CFLAGS="-DWEBRTC_AUDIO_PROCESSING_ONLY_BUILD ${PLATFORM_CFLAGS} ${OS_CFLAGS} ${ARCH_CFLAGS} -DNDEBUG -I\$(top_srcdir)"
 COMMON_CXXFLAGS="-std=c++11 -DWEBRTC_AUDIO_PROCESSING_ONLY_BUILD ${PLATFORM_CFLAGS} ${OS_CFLAGS} ${ARCH_CFLAGS} ${GNUSTL_CFLAGS} -DNDEBUG -I\$(top_srcdir)"
+COMMON_LDFLAGS="${OS_LDFLAGS}"
 AC_SUBST([COMMON_CFLAGS])
 AC_SUBST([COMMON_CXXFLAGS])
+AC_SUBST([COMMON_LDFLAGS])
 
 AC_CONFIG_FILES([
 webrtc-audio-processing.pc
