@@ -175,7 +175,7 @@ libwebrtc_audio_processing_la_LIBADD = $(top_builddir)/webrtc/libwebrtc.la \
 				       $(LIBWEBRTC_PRIVATEARCH) \
 				       $(GNUSTL_LIBS)
 libwebrtc_audio_processing_la_LDFLAGS = $(AM_LDFLAGS) $(COMMON_LDFLAGS) \
-					-Wl,--no-undefined \
+					-no-undefined \
 					-version-info $(LIBWEBRTC_AUDIO_PROCESSING_VERSION_INFO)
 
 # FIXME: The MIPS optimisations need to be hooked up once we have the
