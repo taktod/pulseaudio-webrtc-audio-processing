@@ -18,7 +18,7 @@ Feedback
 ========
 
 Patches, suggestions welcome. You can send them to the PulseAudio mailing
-list[2] or to me at the address below.
+list[3] or to me at the address below.
 
 -- Arun Raghavan <mail@arunraghavan.net>
 
