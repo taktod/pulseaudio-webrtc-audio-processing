@@ -83,30 +83,17 @@ AC_SUBST(PLATFORM_CFLAGS)
 AM_CONDITIONAL(HAVE_POSIX, [test "x${HAVE_POSIX}" = "x1"])
 AM_CONDITIONAL(HAVE_WIN, [test "x${HAVE_WIN}" = "x1"])
 
-AS_CASE(["${host_cpu}"],
-    [i?86|x86_64],
-        [
-         HAVE_X86=1
-        ],
-    [armv7*|armv8*],
-        [
-         HAVE_ARM=1
-         HAVE_ARMV7=1
-         ARCH_CFLAGS="-DWEBRTC_ARCH_ARM -DWEBRTC_ARCH_ARM_V7"
-        ],
-    [arm*],
-        [
-         HAVE_ARM=1
-         ARCH_CFLAGS="-DWEBRTC_ARCH_ARM"
-        ],
-    [aarch64*],
-        [
-         HAVE_NEON=1
-         ARCH_CFLAGS="-DWEBRTC_HAS_NEON -DWEBRTC_ARCH_ARM64"
-        ],
-    # FIXME: Add MIPS support, see webrtc/BUILD.gn for defines
-    [AC_MSG_ERROR([Unsupported CPU type $host_cpu])]
-)
+# Testing __ARM_ARCH_ISA_ARM since the code contains ARM instructions,
+# which don't work on Thumb-2 only platforms (ARMv7-M).
+AC_CHECK_DECLS([__ARM_ARCH_ISA_ARM],
+	[HAVE_ARM=1; ARCH_CFLAGS="${ARCH_CFLAGS} -DWEBRTC_ARCH_ARM"])
+AC_CHECK_DECLS([__ARM_ARCH_7A__],
+	[HAVE_ARMV7=1; ARCH_CFLAGS="${ARCH_CFLAGS} -DWEBRTC_ARCH_ARM_V7"])
+AC_CHECK_DECLS([__aarch64__],
+	[HAVE_NEON=1; ARCH_CFLAGS="${ARCH_CFLAGS} -DWEBRTC_HAS_NEON -DWEBRTC_ARCH_ARM64"])
+AC_CHECK_DECLS([__i386__], [HAVE_X86=1])
+AC_CHECK_DECLS([__x86_64__], [HAVE_X86=1])
+
 AM_CONDITIONAL(HAVE_X86, [test "x${HAVE_X86}" = "x1"])
 AM_CONDITIONAL(HAVE_ARM, [test "x${HAVE_ARM}" = "x1"])
 AM_CONDITIONAL(HAVE_ARMV7, [test "x${HAVE_ARMV7}" = "x1"])
