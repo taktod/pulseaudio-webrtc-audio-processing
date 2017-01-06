@@ -20,7 +20,7 @@ AC_LANG_CPLUSPLUS
 AC_ARG_WITH([ns-mode],
 	    AS_HELP_STRING([--with-ns-mode=float|fixed], [Noise suppresion mode to use. Default is float]))
 
-AS_CASE(["x${with_ns_mode}"],
+AS_CASE(["${with_ns_mode}"],
 	["fixed"], [NS_FIXED=1],
 	["float"], [NS_FIXED=0],
 	[NS_FIXED=0])
