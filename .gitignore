@@ -28,3 +28,5 @@ ltmain.sh
 missing
 mkinstalldirs
 stamp-*
+test/build
+test/.vscode
